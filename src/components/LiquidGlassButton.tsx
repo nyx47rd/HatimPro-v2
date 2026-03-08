@@ -14,9 +14,15 @@ export const LiquidGlassButton: React.FC<LiquidGlassButtonProps> = ({
   ...props 
 }) => {
   const intensityClasses = {
-    light: 'bg-neutral-900/40 backdrop-blur-md border-white/10 hover:bg-neutral-900/50',
-    medium: 'bg-neutral-900/60 backdrop-blur-lg border-white/10 shadow-[0_8px_32px_0_rgba(0,0,0,0.3)] hover:bg-neutral-900/70',
-    heavy: 'bg-neutral-900/80 backdrop-blur-xl border-white/10 shadow-[0_8px_32px_0_rgba(0,0,0,0.4)] hover:bg-neutral-900/90'
+    light: 'border-white/10 hover:border-white/20',
+    medium: 'border-white/10 shadow-[0_8px_32px_0_rgba(0,0,0,0.3)] hover:border-white/20',
+    heavy: 'border-white/10 shadow-[0_8px_32px_0_rgba(0,0,0,0.4)] hover:border-white/20'
+  };
+
+  const overlayClasses = {
+    light: 'bg-neutral-900/40 backdrop-blur-md',
+    medium: 'bg-neutral-900/60 backdrop-blur-lg',
+    heavy: 'bg-neutral-900/80 backdrop-blur-xl'
   };
 
   // Filter out props that conflict with motion.button
@@ -27,17 +33,37 @@ export const LiquidGlassButton: React.FC<LiquidGlassButtonProps> = ({
       whileHover={{ scale: 1.02 }}
       whileTap={{ scale: 0.98 }}
       className={`
-        relative overflow-hidden rounded-2xl border
+        group relative overflow-hidden rounded-2xl border
         ${intensityClasses[intensity]}
-        transition-all duration-300
-        before:absolute before:inset-0
-        before:-translate-x-full before:animate-shimmer
-        before:bg-gradient-to-r before:from-transparent before:via-white/5 before:to-transparent
+        transition-all duration-500
+        isolate
         ${className}
       `}
+      style={{
+        // Safari fix for overflow-hidden not clipping blurred/transformed children
+        WebkitMaskImage: '-webkit-radial-gradient(white, black)'
+      }}
       {...buttonProps}
     >
-      <div className="relative z-10 flex items-center justify-center gap-2 w-full h-full">
+      {/* Aurora Background Effect */}
+      <div className="absolute inset-0 opacity-40 group-hover:opacity-80 transition-opacity duration-700 overflow-hidden rounded-2xl mix-blend-screen z-0">
+        <div 
+          className="absolute -inset-[150%] animate-spin-slow opacity-80" 
+          style={{
+            background: 'conic-gradient(from 0deg, #10b981, #3b82f6, #8b5cf6, #3b82f6, #10b981)',
+            filter: 'blur(40px)'
+          }} 
+        />
+      </div>
+
+      {/* Glass overlay to keep text readable and provide the "liquid glass" feel */}
+      <div className={`absolute inset-0 rounded-2xl ${overlayClasses[intensity]} transition-colors duration-500 group-hover:bg-neutral-900/50 z-0`} />
+
+      {/* Shimmer effect */}
+      <div className="absolute inset-0 -translate-x-full animate-shimmer bg-gradient-to-r from-transparent via-white/10 to-transparent rounded-2xl z-0" />
+
+      {/* Content */}
+      <div className="relative z-10 flex items-center justify-center gap-2 w-full h-full text-white">
         {children}
       </div>
     </motion.button>
