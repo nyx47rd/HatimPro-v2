@@ -1,0 +1,90 @@
+<!doctype html>
+<html lang="en" class="dark">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+    <title>⭐ HatimPro</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link rel="preload" as="style" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&family=Libre+Baskerville:ital,wght@0,400;0,700;1,400&family=Cormorant+Garamond:ital,wght@0,300;0,400;0,500;0,600;0,700;1,300;1,400;1,500;1,600;1,700&display=swap" />
+    <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&family=Libre+Baskerville:ital,wght@0,400;0,700;1,400&family=Cormorant+Garamond:ital,wght@0,300;0,400;0,500;0,600;0,700;1,300;1,400;1,500;1,600;1,700&display=swap" media="print" onload="this.media='all'" />
+    <noscript>
+      <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&family=Libre+Baskerville:ital,wght@0,400;0,700;1,400&family=Cormorant+Garamond:ital,wght@0,300;0,400;0,500;0,600;0,700;1,300;1,400;1,500;1,600;1,700&display=swap" />
+    </noscript>
+    <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+    <link rel="apple-touch-icon" href="/pwa-192x192.svg" />
+    <link rel="manifest" href="/manifest.json" />
+    <meta name="mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-status-bar-style" content="default" />
+    <meta name="apple-mobile-web-app-title" content="HatimPro" />
+    <meta name="theme-color" content="#4B5E51" />
+    <meta name="google-site-verification" content="TkZHJf3IjLHSoqhBr96-VQGK1sy6djF1nlTAb7BnvN8" />
+    <script>
+      // CRITICAL: Robust Chunk Error & Black Screen Detection
+      (function() {
+        var lastReload = sessionStorage.getItem('last_recovery_reload');
+        var now = Date.now();
+        var isRecentReload = lastReload && (now - parseInt(lastReload)) < 30000;
+
+        function reload() {
+          if (!isRecentReload) {
+            sessionStorage.setItem('last_recovery_reload', Date.now().toString());
+            window.location.reload(true); // Force reload
+          }
+        }
+
+        // 1. Catch Chunk Loading Errors
+        window.addEventListener('error', function(e) {
+          var msg = (e.message || '').toLowerCase();
+          if (msg.indexOf('chunk') > -1 || msg.indexOf('loading') > -1 || msg.indexOf('script error') > -1) {
+            reload();
+          }
+        }, true);
+
+        // 2. Catch Unhandled Rejections
+        window.addEventListener('unhandledrejection', function(e) {
+          var msg = (e.reason && e.reason.message || '').toLowerCase();
+          if (msg.indexOf('chunk') > -1) {
+            reload();
+          }
+        });
+
+        // 3. Black Screen Detection
+        var checkCount = 0;
+        var checkInterval = setInterval(function() {
+          checkCount++;
+          var root = document.getElementById('root');
+          // If root is empty or contains only a spinner for too long
+          var isEmpty = !root || root.innerHTML.trim() === '';
+          var isStuckLoading = root && root.innerHTML.indexOf('animate-spin') > -1;
+
+          if (isEmpty || isStuckLoading) {
+            if (checkCount >= 10) { // After 5 seconds (500ms * 10)
+              clearInterval(checkInterval);
+              console.error('Black screen or stuck loading detected, reloading...');
+              reload();
+            }
+          } else {
+            // App mounted successfully
+            clearInterval(checkInterval);
+            console.log('App mounted successfully');
+          }
+        }, 500);
+
+        // 4. Force a reload if we are still on a black screen after 15 seconds no matter what
+        setTimeout(function() {
+          var root = document.getElementById('root');
+          if (!root || root.innerHTML.trim() === '' || root.innerHTML.indexOf('animate-spin') > -1) {
+             console.error('Still black after 15s, final attempt reload...');
+             reload();
+          }
+        }, 15000);
+      })();
+    </script>
+  </head>
+  <body>
+    <div id="root"></div>
+    <script type="module" src="/src/main.tsx"></script>
+  </body>
+</html>
+
