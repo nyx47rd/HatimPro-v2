@@ -1883,29 +1883,11 @@ function AppContent() {
                     </button>
                   </div>
                   <button 
-                    onClick={() => { 
-                      playClick(); 
-                      setProfileUsername(undefined);
-                      setActiveView('profile'); 
-                    }} 
-                    className="flex items-center gap-4 p-4 bg-white dark:bg-neutral-900 rounded-2xl border border-sage-100 dark:border-neutral-800 shadow-sm hover:bg-sage-50 dark:hover:bg-neutral-800 transition-colors"
-                  >
-                    <User className="text-sage-600 dark:text-white" size={24} />
-                    <span className="font-bold text-sage-800 dark:text-white">Profil</span>
-                  </button>
-                  <button 
                     onClick={() => { playClick(); setActiveView('leaderboard'); }} 
                     className="flex items-center gap-4 p-4 bg-white dark:bg-neutral-900 rounded-2xl border border-sage-100 dark:border-neutral-800 shadow-sm hover:bg-sage-50 dark:hover:bg-neutral-800 transition-colors"
                   >
                     <Trophy className="text-sage-600 dark:text-white" size={24} />
                     <span className="font-bold text-sage-800 dark:text-white">Liderlik Tablosu</span>
-                  </button>
-                  <button 
-                    onClick={() => { playClick(); setActiveView('hatim-rooms'); }} 
-                    className="flex items-center gap-4 p-4 bg-white dark:bg-neutral-900 rounded-2xl border border-sage-100 dark:border-neutral-800 shadow-sm hover:bg-sage-50 dark:hover:bg-neutral-800 transition-colors"
-                  >
-                    <BookOpen className="text-sage-600 dark:text-white" size={24} />
-                    <span className="font-bold text-sage-800 dark:text-white">Hatim Odaları</span>
                   </button>
                   <button 
                     onClick={() => { playClick(); setActiveView('stats'); }} 
@@ -2030,7 +2012,7 @@ function AppContent() {
             </main>
 
             {/* Bottom Navbar */}
-            {activeView !== 'zikir' && activeView !== 'profile' && (
+            {(activeView as any) !== 'zikir' && (activeView as any) !== 'profile' && (
               <nav className="fixed bottom-0 left-0 right-0 bg-white dark:bg-black border-t border-sage-200 dark:border-white/10 px-4 py-3 pb-5 z-40">
                 <div className="max-w-md mx-auto flex justify-between items-center">
                   <button 
@@ -2062,11 +2044,15 @@ function AppContent() {
                     <span className="text-[10px] font-medium hidden sm:block">Hatim</span>
                   </button>
                   <button 
-                    onClick={() => handleProtectedAction(() => { playClick(); setActiveView('leaderboard'); })}
-                    className={`flex flex-col items-center gap-1 transition-colors ${activeView === 'leaderboard' ? 'text-sage-800 dark:text-white' : 'text-sage-400 dark:text-neutral-500'}`}
+                    onClick={() => { 
+                      playClick(); 
+                      setProfileUsername(undefined);
+                      setActiveView('profile'); 
+                    }}
+                    className={`flex flex-col items-center gap-1 transition-colors ${activeView === 'profile' ? 'text-sage-800 dark:text-white' : 'text-sage-400 dark:text-neutral-500'}`}
                   >
-                    <Trophy size={22} strokeWidth={activeView === 'leaderboard' ? 2.5 : 2} />
-                    <span className="text-[10px] font-medium hidden sm:block">Sıralama</span>
+                    <User size={22} strokeWidth={activeView === 'profile' ? 2.5 : 2} />
+                    <span className="text-[10px] font-medium hidden sm:block">Profil</span>
                   </button>
                   <button 
                     onClick={() => handleProtectedAction(() => { playClick(); setActiveView('more'); })}
