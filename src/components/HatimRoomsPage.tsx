@@ -1,10 +1,11 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
-import { Users, Share2, Copy, Check, X, Plus, ChevronLeft, Trash2, BookOpen, Info, HelpCircle } from 'lucide-react';
+import { Users, Share2, Copy, Check, X, Plus, ChevronLeft, Trash2, BookOpen, Info, HelpCircle, PartyPopper } from 'lucide-react';
 import { doc, onSnapshot, setDoc, updateDoc, collection, query, where, getDocs, deleteDoc } from 'firebase/firestore';
 import { db } from '../lib/firebase';
 import { useAuth } from '../contexts/AuthContext';
 import { LiquidGlassButton } from './LiquidGlassButton';
+import confetti from 'canvas-confetti';
 
 interface HatimRoomsPageProps {
   onBack: () => void;
@@ -83,6 +84,43 @@ export const HatimRoomsPage: React.FC<HatimRoomsPageProps> = ({ onBack, playClic
   
   const [alertConfig, setAlertConfig] = useState<{ show: boolean; title: string; message: string; type: 'alert' | 'confirm'; onConfirm?: () => void } | null>(null);
   const [copied, setCopied] = useState(false);
+  const [showCompletionModal, setShowCompletionModal] = useState(false);
+  const prevCompletedCountRef = useRef(0);
+
+  // Check for Hatim Completion
+  useEffect(() => {
+    if (!activeSession) return;
+    
+    const completedCount = Object.values(activeSession.juzs).filter(j => j.status === 'completed').length;
+    
+    // If completed count increased to 30, trigger celebration
+    if (completedCount === 30 && prevCompletedCountRef.current < 30) {
+      setShowCompletionModal(true);
+      triggerConfetti();
+    }
+    
+    prevCompletedCountRef.current = completedCount;
+  }, [activeSession]);
+
+  const triggerConfetti = () => {
+    const duration = 3000;
+    const animationEnd = Date.now() + duration;
+    const defaults = { startVelocity: 30, spread: 360, ticks: 60, zIndex: 100 };
+
+    const randomInRange = (min: number, max: number) => Math.random() * (max - min) + min;
+
+    const interval: any = setInterval(function() {
+      const timeLeft = animationEnd - Date.now();
+
+      if (timeLeft <= 0) {
+        return clearInterval(interval);
+      }
+
+      const particleCount = 50 * (timeLeft / duration);
+      confetti({ ...defaults, particleCount, origin: { x: randomInRange(0.1, 0.3), y: Math.random() - 0.2 } });
+      confetti({ ...defaults, particleCount, origin: { x: randomInRange(0.7, 0.9), y: Math.random() - 0.2 } });
+    }, 250);
+  };
 
   // Fetch Sessions
   useEffect(() => {
@@ -889,6 +927,50 @@ export const HatimRoomsPage: React.FC<HatimRoomsPageProps> = ({ onBack, playClic
                 className="w-full py-3 mt-4 text-red-500 font-bold hover:bg-red-500/10 rounded-xl transition-colors"
               >
                 Cüzü Bırak
+              </button>
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+      {/* Hatim Completion Modal */}
+      <AnimatePresence>
+        {showCompletionModal && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="fixed inset-0 z-[70] flex items-center justify-center bg-black/90 p-4 backdrop-blur-md"
+            onClick={() => setShowCompletionModal(false)}
+          >
+            <motion.div
+              initial={{ scale: 0.8, y: 50, opacity: 0 }}
+              animate={{ scale: 1, y: 0, opacity: 1 }}
+              exit={{ scale: 0.8, y: 50, opacity: 0 }}
+              onClick={(e) => e.stopPropagation()}
+              className="bg-neutral-900 border border-emerald-500/30 rounded-3xl p-8 w-full max-w-sm shadow-2xl relative text-center overflow-hidden"
+            >
+              {/* Background Glow */}
+              <div className="absolute top-0 left-0 w-full h-full bg-emerald-500/5 blur-3xl -z-10" />
+              
+              <div className="w-24 h-24 bg-emerald-900/30 rounded-full flex items-center justify-center mx-auto mb-6 border border-emerald-500/30 shadow-lg shadow-emerald-900/20">
+                <PartyPopper size={48} className="text-emerald-400" />
+              </div>
+              
+              <h2 className="text-3xl font-bold text-white mb-2 font-serif">Elhamdülillah!</h2>
+              <h3 className="text-xl font-medium text-emerald-400 mb-4">Hatim Tamamlandı</h3>
+              
+              <p className="text-neutral-300 mb-8 leading-relaxed">
+                Bu hatim odasındaki tüm cüzler okundu. Allah (c.c) kabul etsin. Şimdi hatim duası yapabilirsiniz.
+              </p>
+              
+              <button 
+                onClick={() => {
+                  playClick();
+                  setShowCompletionModal(false);
+                }}
+                className="w-full py-4 bg-emerald-600 hover:bg-emerald-500 text-white font-bold rounded-xl transition-all shadow-lg shadow-emerald-900/40 hover:shadow-emerald-900/60 hover:scale-[1.02]"
+              >
+                Allah Kabul Etsin
               </button>
             </motion.div>
           </motion.div>
