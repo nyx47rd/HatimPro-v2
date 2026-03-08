@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useMemo, FormEvent, useRef, Suspense, Component, ReactNode } from 'react';
 import useSound from 'use-sound';
+import LiquidGlass from 'liquid-glass-react';
 import { 
   BookOpen, 
   Plus, 
@@ -102,7 +103,9 @@ const LazyLeaderboardPage = React.lazy(() => import('./components/LeaderboardPag
 const LazyStatsPage = React.lazy(() => import('./components/StatsPage').then(module => ({ default: module.StatsPage })));
 const LazyNotificationsPanel = React.lazy(() => import('./components/NotificationsPanel').then(module => ({ default: module.NotificationsPanel })));
 
-type View = 'home' | 'tasks' | 'history' | 'settings' | 'zikir' | 'profile' | 'privacy' | 'terms' | 'more' | 'data-deletion' | 'leaderboard' | 'stats';
+const LazyHatimRoomsPage = React.lazy(() => import('./components/HatimRoomsPage').then(module => ({ default: module.HatimRoomsPage })));
+
+type View = 'home' | 'tasks' | 'history' | 'settings' | 'zikir' | 'hatim-rooms' | 'profile' | 'privacy' | 'terms' | 'more' | 'data-deletion' | 'leaderboard' | 'stats';
 
 class ErrorBoundary extends Component<{children: ReactNode}, {hasError: boolean}> {
   constructor(props: {children: ReactNode}) {
@@ -163,6 +166,7 @@ function AppContent() {
   });
   const [isNotificationsOpen, setIsNotificationsOpen] = useState(false);
   const [zikirJoinSessionId, setZikirJoinSessionId] = useState<string | null>(null);
+  const [hatimJoinSessionId, setHatimJoinSessionId] = useState<string | null>(null);
   const [profileUsername, setProfileUsername] = useState<string | undefined>(() => {
     const path = window.location.pathname;
     if (path.startsWith('/@')) {
@@ -1032,13 +1036,23 @@ function AppContent() {
 
       {/* Quick Actions */}
       <div className="flex gap-4">
-        <button 
-          onClick={() => handleProtectedAction(() => { playOpen(); setIsAddLogOpen(true); })}
-          className="flex-1 bg-black hover:bg-neutral-800 text-white rounded-2xl py-4 px-6 font-bold flex items-center justify-center gap-2 transition-all shadow-lg shadow-black/10 active:scale-95 border border-neutral-800"
-        >
-          <Plus size={20} />
-          İlerleme Kaydet
-        </button>
+        <div className="flex-1">
+          <LiquidGlass
+            displacementScale={64}
+            blurAmount={0.1}
+            saturation={130}
+            aberrationIntensity={2}
+            elasticity={0.35}
+            cornerRadius={16}
+            padding="16px"
+            onClick={() => handleProtectedAction(() => { playOpen(); setIsAddLogOpen(true); })}
+          >
+            <div className="w-full flex items-center justify-center gap-2 text-white font-bold">
+              <Plus size={20} />
+              İlerleme Kaydet
+            </div>
+          </LiquidGlass>
+        </div>
       </div>
 
       {/* Recent History for Active Task */}
@@ -1870,6 +1884,13 @@ function AppContent() {
                     <span className="font-bold text-sage-800 dark:text-white">Liderlik Tablosu</span>
                   </button>
                   <button 
+                    onClick={() => { playClick(); setActiveView('hatim-rooms'); }} 
+                    className="flex items-center gap-4 p-4 bg-white dark:bg-neutral-900 rounded-2xl border border-sage-100 dark:border-neutral-800 shadow-sm hover:bg-sage-50 dark:hover:bg-neutral-800 transition-colors"
+                  >
+                    <BookOpen className="text-sage-600 dark:text-white" size={24} />
+                    <span className="font-bold text-sage-800 dark:text-white">Hatim Odaları</span>
+                  </button>
+                  <button 
                     onClick={() => { playClick(); setActiveView('stats'); }} 
                     className="flex items-center gap-4 p-4 bg-white dark:bg-neutral-900 rounded-2xl border border-sage-100 dark:border-neutral-800 shadow-sm hover:bg-sage-50 dark:hover:bg-neutral-800 transition-colors"
                   >
@@ -1939,6 +1960,20 @@ function AppContent() {
                       }} 
                       playClick={playClick} 
                       joinSessionId={zikirJoinSessionId}
+                    />
+                  </Suspense>
+                </div>
+              )}
+              {activeView === 'hatim-rooms' && (
+                <div className="fixed inset-0 z-50 bg-black">
+                  <Suspense fallback={<div className="flex h-full items-center justify-center"><div className="w-8 h-8 border-4 border-white border-t-transparent rounded-full animate-spin"></div></div>}>
+                    <LazyHatimRoomsPage 
+                      onBack={() => {
+                        setActiveView('home');
+                        setHatimJoinSessionId(null);
+                      }} 
+                      playClick={playClick} 
+                      joinSessionId={hatimJoinSessionId}
                     />
                   </Suspense>
                 </div>

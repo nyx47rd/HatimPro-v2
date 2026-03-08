@@ -4,6 +4,7 @@ import { RotateCcw, Users, Share2, Copy, Check, X, Plus, ChevronLeft, Target, Tr
 import { doc, onSnapshot, setDoc, updateDoc, increment, collection, query, where, getDocs, deleteDoc } from 'firebase/firestore';
 import { db } from '../lib/firebase';
 import { useAuth } from '../contexts/AuthContext';
+import LiquidGlass from 'liquid-glass-react';
 
 interface ZikirPageProps {
   onBack: () => void;
@@ -548,12 +549,22 @@ export const ZikirPage: React.FC<ZikirPageProps> = ({ onBack, playClick, joinSes
           )}
 
           {/* Main Button */}
-          <button
-            onClick={handleIncrement}
-            className="w-full max-w-xs bg-white text-black font-bold text-xl py-6 rounded-full shadow-lg active:scale-95 transition-transform hover:bg-neutral-200 shrink-0"
-          >
-            Zikir Çek
-          </button>
+          <div className="w-full max-w-xs shrink-0">
+            <LiquidGlass
+              displacementScale={64}
+              blurAmount={0.1}
+              saturation={130}
+              aberrationIntensity={2}
+              elasticity={0.35}
+              cornerRadius={100}
+              padding="24px"
+              onClick={handleIncrement}
+            >
+              <div className="w-full text-center text-white font-bold text-xl">
+                Zikir Çek
+              </div>
+            </LiquidGlass>
+          </div>
 
           {/* Controls */}
           <div className="flex gap-4 w-full max-w-xs shrink-0">
