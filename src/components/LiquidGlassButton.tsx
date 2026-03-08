@@ -45,22 +45,20 @@ export const LiquidGlassButton: React.FC<LiquidGlassButtonProps> = ({
       }}
       {...buttonProps}
     >
-      {/* Aurora Background Effect */}
-      <div className="absolute inset-0 opacity-40 group-hover:opacity-80 transition-opacity duration-700 overflow-hidden rounded-2xl mix-blend-screen z-0">
-        <div 
-          className="absolute -inset-[150%] animate-spin-slow opacity-80" 
-          style={{
-            background: 'conic-gradient(from 0deg, #10b981, #3b82f6, #8b5cf6, #3b82f6, #10b981)',
-            filter: 'blur(40px)'
-          }} 
-        />
+      {/* 1. Base Glass overlay (provides the dark background and blurs whatever is behind the button) */}
+      <div className={`absolute inset-0 rounded-2xl ${overlayClasses[intensity]} transition-colors duration-500 group-hover:bg-neutral-900/50 z-0 pointer-events-none`} />
+
+      {/* 2. Aurora Background Effect (rendered ON TOP of the dark glass, so it's clearly visible even when not hovered) */}
+      <div className="absolute inset-0 opacity-50 group-hover:opacity-100 transition-opacity duration-700 overflow-hidden rounded-2xl mix-blend-screen z-0 pointer-events-none">
+        <div className="absolute -inset-[100%] animate-spin-slow">
+          <div className="absolute top-[15%] left-[15%] w-[45%] h-[45%] bg-emerald-500 rounded-full blur-[40px]" />
+          <div className="absolute top-[15%] right-[15%] w-[45%] h-[45%] bg-blue-500 rounded-full blur-[40px]" />
+          <div className="absolute bottom-[15%] left-[25%] w-[45%] h-[45%] bg-purple-500 rounded-full blur-[40px]" />
+        </div>
       </div>
 
-      {/* Glass overlay to keep text readable and provide the "liquid glass" feel */}
-      <div className={`absolute inset-0 rounded-2xl ${overlayClasses[intensity]} transition-colors duration-500 group-hover:bg-neutral-900/50 z-0`} />
-
-      {/* Shimmer effect */}
-      <div className="absolute inset-0 -translate-x-full animate-shimmer bg-gradient-to-r from-transparent via-white/10 to-transparent rounded-2xl z-0" />
+      {/* 3. Shimmer effect (seamless ping-pong) */}
+      <div className="absolute inset-0 -translate-x-full animate-shimmer bg-gradient-to-r from-transparent via-white/10 to-transparent rounded-2xl z-0 pointer-events-none" />
 
       {/* Content */}
       <div className="relative z-10 flex items-center justify-center gap-2 w-full h-full text-white">

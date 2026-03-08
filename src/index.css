@@ -71,13 +71,19 @@ body {
 }
 
 @keyframes shimmer {
-  100% {
+  0% {
+    transform: translateX(-100%);
+  }
+  50% {
     transform: translateX(100%);
+  }
+  100% {
+    transform: translateX(-100%);
   }
 }
 
 .animate-shimmer {
-  animation: shimmer 2s infinite;
+  animation: shimmer 4s ease-in-out infinite;
 }
 
 @keyframes spin-slow {
