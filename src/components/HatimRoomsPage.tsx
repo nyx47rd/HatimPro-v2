@@ -4,7 +4,7 @@ import { Users, Share2, Copy, Check, X, Plus, ChevronLeft, Trash2, BookOpen } fr
 import { doc, onSnapshot, setDoc, updateDoc, collection, query, where, getDocs, deleteDoc } from 'firebase/firestore';
 import { db } from '../lib/firebase';
 import { useAuth } from '../contexts/AuthContext';
-import LiquidGlass from 'liquid-glass-react';
+import { LiquidGlassButton } from './LiquidGlassButton';
 
 interface HatimRoomsPageProps {
   onBack: () => void;
@@ -238,18 +238,13 @@ export const HatimRoomsPage: React.FC<HatimRoomsPageProps> = ({ onBack, playClic
       >
         <div className="flex justify-between items-center mb-6">
           <h2 className="text-2xl font-bold text-white">Hatim Odaları</h2>
-          <LiquidGlass
-            displacementScale={30}
-            blurAmount={0.1}
-            saturation={120}
-            aberrationIntensity={1}
-            elasticity={0.3}
-            cornerRadius={100}
-            padding="8px"
+          <LiquidGlassButton
             onClick={() => { playClick(); setShowCreateModal(true); }}
+            className="p-3"
+            intensity="light"
           >
             <Plus size={24} className="text-white" />
-          </LiquidGlass>
+          </LiquidGlassButton>
         </div>
 
         <div className="space-y-4">
@@ -456,20 +451,13 @@ export const HatimRoomsPage: React.FC<HatimRoomsPageProps> = ({ onBack, playClic
                       className="w-full bg-black border border-neutral-800 rounded-xl px-4 py-3 text-white focus:outline-none focus:border-white transition-colors"
                     />
                   </div>
-                  <LiquidGlass
-                    displacementScale={30}
-                    blurAmount={0.1}
-                    saturation={120}
-                    aberrationIntensity={1}
-                    elasticity={0.3}
-                    cornerRadius={12}
-                    padding="16px"
+                  <LiquidGlassButton
                     onClick={handleCreateSession}
+                    className="w-full py-4 text-white font-bold"
+                    intensity="medium"
                   >
-                    <div className="w-full text-center text-white font-bold">
-                      {isCreating ? 'Oluşturuluyor...' : 'Oluştur'}
-                    </div>
-                  </LiquidGlass>
+                    {isCreating ? 'Oluşturuluyor...' : 'Oluştur'}
+                  </LiquidGlassButton>
                 </div>
               ) : (
                 <div className="space-y-4">
@@ -483,20 +471,13 @@ export const HatimRoomsPage: React.FC<HatimRoomsPageProps> = ({ onBack, playClic
                       className="w-full bg-black border border-neutral-800 rounded-xl px-4 py-3 text-white focus:outline-none focus:border-white transition-colors font-mono tracking-widest uppercase"
                     />
                   </div>
-                  <LiquidGlass
-                    displacementScale={30}
-                    blurAmount={0.1}
-                    saturation={120}
-                    aberrationIntensity={1}
-                    elasticity={0.3}
-                    cornerRadius={12}
-                    padding="16px"
+                  <LiquidGlassButton
                     onClick={handleJoinRoom}
+                    className="w-full py-4 text-white font-bold"
+                    intensity="medium"
                   >
-                    <div className="w-full text-center text-white font-bold">
-                      {isCreating ? 'Katılınıyor...' : 'Odaya Katıl'}
-                    </div>
-                  </LiquidGlass>
+                    {isCreating ? 'Katılınıyor...' : 'Odaya Katıl'}
+                  </LiquidGlassButton>
                 </div>
               )}
 

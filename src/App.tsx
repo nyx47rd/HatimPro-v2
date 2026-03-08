@@ -1,8 +1,8 @@
 import React, { useState, useEffect, useMemo, FormEvent, useRef, Suspense, Component, ReactNode } from 'react';
 import useSound from 'use-sound';
-import LiquidGlass from 'liquid-glass-react';
+import { LiquidGlassButton } from './components/LiquidGlassButton';
 import { 
-  BookOpen, 
+  BookOpen,
   Plus, 
   History as HistoryIcon, 
   ChevronRight, 
@@ -1036,23 +1036,14 @@ function AppContent() {
 
       {/* Quick Actions */}
       <div className="flex gap-4">
-        <div className="flex-1">
-          <LiquidGlass
-            displacementScale={64}
-            blurAmount={0.1}
-            saturation={130}
-            aberrationIntensity={2}
-            elasticity={0.35}
-            cornerRadius={16}
-            padding="16px"
-            onClick={() => handleProtectedAction(() => { playOpen(); setIsAddLogOpen(true); })}
-          >
-            <div className="w-full flex items-center justify-center gap-2 text-white font-bold">
-              <Plus size={20} />
-              İlerleme Kaydet
-            </div>
-          </LiquidGlass>
-        </div>
+        <LiquidGlassButton 
+          onClick={() => handleProtectedAction(() => { playOpen(); setIsAddLogOpen(true); })}
+          className="flex-1 py-4 px-6 font-bold flex items-center justify-center gap-2 text-white"
+          intensity="heavy"
+        >
+          <Plus size={20} />
+          İlerleme Kaydet
+        </LiquidGlassButton>
       </div>
 
       {/* Recent History for Active Task */}
