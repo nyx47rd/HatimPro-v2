@@ -454,7 +454,7 @@ export const HatimRoomsPage: React.FC<HatimRoomsPageProps> = ({ onBack, playClic
                   <LiquidGlassButton
                     onClick={handleCreateSession}
                     className="w-full py-4 text-white font-bold"
-                    intensity="medium"
+                    intensity="heavy"
                   >
                     {isCreating ? 'Oluşturuluyor...' : 'Oluştur'}
                   </LiquidGlassButton>
@@ -474,7 +474,7 @@ export const HatimRoomsPage: React.FC<HatimRoomsPageProps> = ({ onBack, playClic
                   <LiquidGlassButton
                     onClick={handleJoinRoom}
                     className="w-full py-4 text-white font-bold"
-                    intensity="medium"
+                    intensity="heavy"
                   >
                     {isCreating ? 'Katılınıyor...' : 'Odaya Katıl'}
                   </LiquidGlassButton>

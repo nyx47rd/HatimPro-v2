@@ -14,9 +14,9 @@ export const LiquidGlassButton: React.FC<LiquidGlassButtonProps> = ({
   ...props 
 }) => {
   const intensityClasses = {
-    light: 'bg-white/10 backdrop-blur-md border-white/20',
-    medium: 'bg-white/20 backdrop-blur-lg border-white/30 shadow-[0_8px_32px_0_rgba(255,255,255,0.1)]',
-    heavy: 'bg-white/30 backdrop-blur-xl border-white/40 shadow-[0_8px_32px_0_rgba(255,255,255,0.2)]'
+    light: 'bg-neutral-900/40 backdrop-blur-md border-white/10 hover:bg-neutral-900/50',
+    medium: 'bg-neutral-900/60 backdrop-blur-lg border-white/10 shadow-[0_8px_32px_0_rgba(0,0,0,0.3)] hover:bg-neutral-900/70',
+    heavy: 'bg-neutral-900/80 backdrop-blur-xl border-white/10 shadow-[0_8px_32px_0_rgba(0,0,0,0.4)] hover:bg-neutral-900/90'
   };
 
   return (
@@ -29,12 +29,12 @@ export const LiquidGlassButton: React.FC<LiquidGlassButtonProps> = ({
         transition-all duration-300
         before:absolute before:inset-0
         before:-translate-x-full before:animate-shimmer
-        before:bg-gradient-to-r before:from-transparent before:via-white/20 before:to-transparent
+        before:bg-gradient-to-r before:from-transparent before:via-white/5 before:to-transparent
         ${className}
       `}
       {...props}
     >
-      <div className="relative z-10">
+      <div className="relative z-10 flex items-center justify-center gap-2 w-full h-full">
         {children}
       </div>
     </motion.button>

@@ -1113,12 +1113,13 @@ function AppContent() {
               Sil ({selectedTasks.length})
             </button>
           )}
-          <button 
+          <LiquidGlassButton 
             onClick={() => handleProtectedAction(() => { playOpen(); setIsAddTaskOpen(true); })}
-            className="bg-black dark:bg-white text-white dark:text-black p-2 rounded-full hover:bg-neutral-800 dark:hover:bg-neutral-200 transition-colors shadow-md"
+            className="p-2 text-white"
+            intensity="light"
           >
             <Plus size={24} />
-          </button>
+          </LiquidGlassButton>
         </div>
       </div>
 
@@ -1384,12 +1385,13 @@ function AppContent() {
                 <p className="text-sm text-sage-600">
                   Cihazlar arası veri eşitlemesi için giriş yapın veya kayıt olun.
                 </p>
-                <button 
+                <LiquidGlassButton 
                   onClick={() => { playClick(); setIsAuthModalOpen(true); }}
-                  className="w-full py-3 text-white font-bold bg-black rounded-xl hover:bg-neutral-800 transition-colors shadow-lg shadow-black/10"
+                  className="w-full py-4 text-white font-bold"
+                  intensity="heavy"
                 >
                   Giriş Yap / Kayıt Ol
-                </button>
+                </LiquidGlassButton>
               </div>
             )}
           </div>
@@ -2100,12 +2102,13 @@ function AppContent() {
                   </div>
                 </div>
                 
-                <button 
+                <LiquidGlassButton 
                   type="submit"
-                  className="w-full bg-sage-600 text-white rounded-2xl py-4 font-bold text-lg shadow-lg shadow-sage-200 hover:bg-sage-700 transition-all active:scale-95"
+                  className="w-full py-4 text-white font-bold text-lg"
+                  intensity="heavy"
                 >
                   Kaydet
-                </button>
+                </LiquidGlassButton>
               </form>
             </motion.div>
           </div>
@@ -2224,12 +2227,13 @@ function AppContent() {
                     </div>
                   </div>
                   
-                  <button 
+                  <LiquidGlassButton 
                     type="submit"
-                    className="w-full bg-sage-600 text-white rounded-2xl py-4 font-bold hover:bg-sage-700 transition-all"
+                    className="w-full py-4 text-white font-bold"
+                    intensity="heavy"
                   >
                     Özel Görev Oluştur
-                  </button>
+                  </LiquidGlassButton>
                 </form>
               </div>
             </motion.div>

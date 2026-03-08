@@ -386,12 +386,13 @@ export const ZikirPage: React.FC<ZikirPageProps> = ({ onBack, playClick, joinSes
         <div className="flex justify-between items-center mb-6">
           <h2 className="text-2xl font-bold text-white">Görevlerim</h2>
           {user && (
-            <button 
+            <LiquidGlassButton 
               onClick={() => { playClick(); setShowCreateModal(true); }}
-              className="bg-white text-black p-2 rounded-full hover:bg-neutral-200 transition-colors"
+              className="p-2 text-white"
+              intensity="light"
             >
               <Plus size={24} />
-            </button>
+            </LiquidGlassButton>
           )}
         </div>
 
@@ -562,23 +563,25 @@ export const ZikirPage: React.FC<ZikirPageProps> = ({ onBack, playClick, joinSes
           {/* Controls */}
           <div className="flex gap-4 w-full max-w-xs shrink-0">
             {(!user || activeTask.host === user?.uid || activeTask.host === 'guest') && (
-              <button
+              <LiquidGlassButton
                 onClick={handleReset}
-                className="flex-1 bg-neutral-900 border border-neutral-800 text-white py-4 rounded-2xl flex flex-col items-center justify-center gap-1 hover:bg-neutral-800 transition-colors"
+                className="flex-1 py-4 flex-col gap-1"
+                intensity="light"
               >
                 <RotateCcw size={20} className="text-neutral-400" />
-                <span className="text-xs font-bold">Sıfırla</span>
-              </button>
+                <span className="text-xs font-bold text-white">Sıfırla</span>
+              </LiquidGlassButton>
             )}
             
             {user && (
-              <button
+              <LiquidGlassButton
                 onClick={() => { playClick(); setShowInviteModal(true); }}
-                className="flex-1 bg-neutral-900 border border-neutral-800 text-white py-4 rounded-2xl flex flex-col items-center justify-center gap-1 hover:bg-neutral-800 transition-colors"
+                className="flex-1 py-4 flex-col gap-1"
+                intensity="light"
               >
                 <Share2 size={20} className="text-blue-400" />
-                <span className="text-xs font-bold">Davet Et</span>
-              </button>
+                <span className="text-xs font-bold text-white">Davet Et</span>
+              </LiquidGlassButton>
             )}
           </div>
         </div>
@@ -708,17 +711,18 @@ export const ZikirPage: React.FC<ZikirPageProps> = ({ onBack, playClick, joinSes
                     />
                   </div>
 
-                  <button
+                  <LiquidGlassButton
                     onClick={handleCreateTask}
                     disabled={isCreating || !newTaskName.trim()}
-                    className="w-full bg-white text-black font-bold py-4 rounded-xl flex items-center justify-center gap-2 hover:bg-neutral-200 transition-colors disabled:opacity-50 mt-4"
+                    className="w-full py-4 text-white font-bold mt-4 disabled:opacity-50"
+                    intensity="heavy"
                   >
                     {isCreating ? (
-                      <div className="w-5 h-5 border-2 border-black border-t-transparent rounded-full animate-spin" />
+                      <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin" />
                     ) : (
                       'Oluştur'
                     )}
-                  </button>
+                  </LiquidGlassButton>
                 </div>
               ) : (
                 <div className="space-y-4">
@@ -732,17 +736,18 @@ export const ZikirPage: React.FC<ZikirPageProps> = ({ onBack, playClick, joinSes
                       className="w-full bg-black border border-neutral-800 rounded-xl px-4 py-3 text-white focus:outline-none focus:border-white transition-colors font-mono tracking-widest uppercase"
                     />
                   </div>
-                  <button
+                  <LiquidGlassButton
                     onClick={handleJoinRoom}
                     disabled={isCreating || !joinRoomCode.trim()}
-                    className="w-full bg-white text-black font-bold py-4 rounded-xl flex items-center justify-center gap-2 hover:bg-neutral-200 transition-colors disabled:opacity-50 mt-4"
+                    className="w-full py-4 text-white font-bold mt-4 disabled:opacity-50"
+                    intensity="heavy"
                   >
                     {isCreating ? (
-                      <div className="w-5 h-5 border-2 border-black border-t-transparent rounded-full animate-spin" />
+                      <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin" />
                     ) : (
                       'Odaya Katıl'
                     )}
-                  </button>
+                  </LiquidGlassButton>
                 </div>
               )}
 
