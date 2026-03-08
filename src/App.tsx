@@ -35,6 +35,7 @@ import {
   Settings,
   ChevronLeft,
   Bell,
+  HelpCircle,
   Shield,
   Book,
   Trophy,
@@ -104,6 +105,7 @@ const LazyStatsPage = React.lazy(() => import('./components/StatsPage').then(mod
 const LazyNotificationsPanel = React.lazy(() => import('./components/NotificationsPanel').then(module => ({ default: module.NotificationsPanel })));
 
 const LazyHatimRoomsPage = React.lazy(() => import('./components/HatimRoomsPage').then(module => ({ default: module.HatimRoomsPage })));
+import { TutorialOverlay } from './components/TutorialOverlay';
 
 type View = 'home' | 'tasks' | 'history' | 'settings' | 'zikir' | 'hatim-rooms' | 'profile' | 'privacy' | 'terms' | 'more' | 'data-deletion' | 'leaderboard' | 'stats';
 
@@ -461,6 +463,16 @@ function AppContent() {
     // Only show splash if it's enabled and it's a fresh load (not handled by state persistence across views)
     return isSplashEnabled;
   });
+
+  const [showTutorial, setShowTutorial] = useState(() => {
+    const saved = localStorage.getItem('hatim_tutorial_seen');
+    return saved !== 'true';
+  });
+
+  const handleCloseTutorial = () => {
+    setShowTutorial(false);
+    localStorage.setItem('hatim_tutorial_seen', 'true');
+  };
 
   // Sounds
   const [playClick] = useSound(SOUNDS.click, { soundEnabled: isSoundEnabled, volume: 0.5 });
@@ -1819,6 +1831,12 @@ function AppContent() {
             transition={{ duration: 0.6, ease: "easeOut" }}
             className="min-h-screen"
           >
+            <AnimatePresence>
+              {showTutorial && (
+                <TutorialOverlay onClose={handleCloseTutorial} />
+              )}
+            </AnimatePresence>
+
             {/* Header */}
             <header className="bg-white dark:bg-neutral-900 border-b border-sage-200 dark:border-neutral-800 px-6 py-4 sticky top-0 z-30">
               <div className="max-w-2xl mx-auto flex justify-between items-center">
@@ -1835,6 +1853,12 @@ function AppContent() {
                       Giriş Yap
                     </button>
                   )}
+                  <button 
+                    onClick={() => { playClick(); setShowTutorial(true); }}
+                    className="relative p-2 text-sage-600 dark:text-sage-400 hover:bg-sage-100 dark:hover:bg-neutral-800 rounded-full transition-colors"
+                  >
+                    <HelpCircle size={24} />
+                  </button>
                   <button 
                     onClick={() => { playClick(); setIsNotificationsOpen(true); }}
                     className="relative p-2 text-sage-600 dark:text-sage-400 hover:bg-sage-100 dark:hover:bg-neutral-800 rounded-full transition-colors"

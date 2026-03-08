@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
-import { Users, Share2, Copy, Check, X, Plus, ChevronLeft, Trash2, BookOpen } from 'lucide-react';
+import { Users, Share2, Copy, Check, X, Plus, ChevronLeft, Trash2, BookOpen, Info, HelpCircle } from 'lucide-react';
 import { doc, onSnapshot, setDoc, updateDoc, collection, query, where, getDocs, deleteDoc } from 'firebase/firestore';
 import { db } from '../lib/firebase';
 import { useAuth } from '../contexts/AuthContext';
@@ -16,6 +16,8 @@ interface JuzStatus {
   status: 'available' | 'taken' | 'completed';
   assignedTo: string | null;
   assignedName: string | null;
+  currentPage?: number;
+  totalPages?: number;
 }
 
 interface HatimSession {
@@ -29,6 +31,39 @@ interface HatimSession {
   };
 }
 
+const JUZ_DETAILS: Record<number, { pages: string, surahs: string }> = {
+  1: { pages: '1-21', surahs: 'Fatiha, Bakara' },
+  2: { pages: '22-41', surahs: 'Bakara' },
+  3: { pages: '42-61', surahs: 'Bakara, Âl-i İmrân' },
+  4: { pages: '62-81', surahs: 'Âl-i İmrân, Nisâ' },
+  5: { pages: '82-101', surahs: 'Nisâ' },
+  6: { pages: '102-121', surahs: 'Nisâ, Mâide' },
+  7: { pages: '122-141', surahs: 'Mâide, En\'âm' },
+  8: { pages: '142-161', surahs: 'En\'âm, A\'râf' },
+  9: { pages: '162-181', surahs: 'A\'râf, Enfâl' },
+  10: { pages: '182-201', surahs: 'Enfâl, Tevbe' },
+  11: { pages: '202-221', surahs: 'Tevbe, Yûnus, Hûd' },
+  12: { pages: '222-241', surahs: 'Hûd, Yûsuf' },
+  13: { pages: '242-261', surahs: 'Yûsuf, Ra\'d, İbrâhîm' },
+  14: { pages: '262-281', surahs: 'Hicr, Nahl' },
+  15: { pages: '282-301', surahs: 'İsrâ, Kehf' },
+  16: { pages: '302-321', surahs: 'Kehf, Meryem, Tâhâ' },
+  17: { pages: '322-341', surahs: 'Enbiyâ, Hac' },
+  18: { pages: '342-361', surahs: 'Mü\'minûn, Nûr, Furkân' },
+  19: { pages: '362-381', surahs: 'Furkân, Şuarâ, Neml' },
+  20: { pages: '382-401', surahs: 'Neml, Kasas, Ankebût' },
+  21: { pages: '402-421', surahs: 'Ankebût, Rûm, Lokmân, Secde, Ahzâb' },
+  22: { pages: '422-441', surahs: 'Ahzâb, Sebe\', Fâtır, Yâsîn' },
+  23: { pages: '442-461', surahs: 'Yâsîn, Sâffât, Sâd, Zümer' },
+  24: { pages: '462-481', surahs: 'Zümer, Mü\'min, Fussilet' },
+  25: { pages: '482-501', surahs: 'Fussilet, Şûrâ, Zuhruf, Duhân, Câsiye' },
+  26: { pages: '502-521', surahs: 'Ahkâf, Muhammed, Feth, Hucurât, Kâf, Zâriyât' },
+  27: { pages: '522-541', surahs: 'Zâriyât, Tûr, Necm, Kamer, Rahmân, Vâkıa, Hadîd' },
+  28: { pages: '542-561', surahs: 'Mücâdele, Haşr, Mümtehine, Saf, Cuma, Münâfikûn, Teğâbün, Talâk, Tahrîm' },
+  29: { pages: '562-581', surahs: 'Mülk, Kalem, Hâkka, Meâric, Nûh, Cin, Müzzemmil, Müddessir, Kıyâme, İnsân, Mürselât' },
+  30: { pages: '582-604', surahs: 'Nebe\', Nâziât, Abese, Tekvîr, İnfitâr, Mutaffifîn, İnşikâk, Burûc, Târık, A\'lâ, Gâşiye, Fecr, Beled, Şems, Leyl, Duhâ, İnşirâh, Tîn, Alak, Kadr, Beyyine, Zilzâl, Âdiyât, Kâria, Tekâsür, Asr, Hümeze, Fîl, Kureyş, Mâûn, Kevser, Kâfirûn, Nasr, Tebbet, İhlâs, Felak, Nâs' }
+};
+
 export const HatimRoomsPage: React.FC<HatimRoomsPageProps> = ({ onBack, playClick, joinSessionId }) => {
   const { user, profile } = useAuth();
   
@@ -41,6 +76,10 @@ export const HatimRoomsPage: React.FC<HatimRoomsPageProps> = ({ onBack, playClic
   const [newSessionName, setNewSessionName] = useState('Ortak Hatim');
   const [joinRoomCode, setJoinRoomCode] = useState('');
   const [isCreating, setIsCreating] = useState(false);
+  
+  const [selectedJuz, setSelectedJuz] = useState<number | null>(null);
+  const [showJuzDetails, setShowJuzDetails] = useState<number | null>(null);
+  const [showHowTo, setShowHowTo] = useState(false);
   
   const [alertConfig, setAlertConfig] = useState<{ show: boolean; title: string; message: string; type: 'alert' | 'confirm'; onConfirm?: () => void } | null>(null);
   const [copied, setCopied] = useState(false);
@@ -101,7 +140,7 @@ export const HatimRoomsPage: React.FC<HatimRoomsPageProps> = ({ onBack, playClic
 
       const initialJuzs: { [key: number]: JuzStatus } = {};
       for (let i = 1; i <= 30; i++) {
-        initialJuzs[i] = { status: 'available', assignedTo: null, assignedName: null };
+        initialJuzs[i] = { status: 'available', assignedTo: null, assignedName: null, currentPage: 0, totalPages: 20 };
       }
 
       await setDoc(doc(db, 'hatim_sessions', newSessionId), {
@@ -177,15 +216,20 @@ export const HatimRoomsPage: React.FC<HatimRoomsPageProps> = ({ onBack, playClic
     playClick();
     if (!user || !activeSession || !profile) return;
 
-    const displayName = profile.displayName || user.displayName || 'İsimsiz';
-    let newStatus: JuzStatus = { ...currentStatus };
+    const username = profile.username || user.displayName || 'İsimsiz';
 
     if (currentStatus.status === 'available') {
-      newStatus = { status: 'taken', assignedTo: user.uid, assignedName: displayName };
-    } else if (currentStatus.status === 'taken' && currentStatus.assignedTo === user.uid) {
-      newStatus = { status: 'completed', assignedTo: user.uid, assignedName: displayName };
-    } else if (currentStatus.status === 'completed' && currentStatus.assignedTo === user.uid) {
-      newStatus = { status: 'available', assignedTo: null, assignedName: null };
+      await updateDoc(doc(db, 'hatim_sessions', activeSession.id), {
+        [`juzs.${juzNumber}`]: { 
+          status: 'taken', 
+          assignedTo: user.uid, 
+          assignedName: username,
+          currentPage: 0,
+          totalPages: 20
+        }
+      });
+    } else if (currentStatus.assignedTo === user.uid) {
+      setSelectedJuz(juzNumber);
     } else if (activeSession.host === user.uid) {
        // Host can reset any juz
        setAlertConfig({
@@ -195,19 +239,72 @@ export const HatimRoomsPage: React.FC<HatimRoomsPageProps> = ({ onBack, playClic
          type: 'confirm',
          onConfirm: async () => {
            await updateDoc(doc(db, 'hatim_sessions', activeSession.id), {
-             [`juzs.${juzNumber}`]: { status: 'available', assignedTo: null, assignedName: null }
+             [`juzs.${juzNumber}`]: { status: 'available', assignedTo: null, assignedName: null, currentPage: 0, totalPages: 20 }
            });
            setAlertConfig(null);
          }
        });
-       return;
-    } else {
-      return; // Not allowed
     }
+  };
 
-    await updateDoc(doc(db, 'hatim_sessions', activeSession.id), {
-      [`juzs.${juzNumber}`]: newStatus
-    });
+  const handleAutoAssign = async () => {
+    playClick();
+    if (!user || !activeSession || activeSession.host !== user.uid) return;
+
+    setIsCreating(true);
+    try {
+      const participantsQuery = query(collection(db, 'users'), where('uid', 'in', activeSession.participants));
+      const participantsSnap = await getDocs(participantsQuery);
+      const participantMap: Record<string, string> = {};
+      participantsSnap.forEach(doc => {
+        const data = doc.data();
+        participantMap[data.uid] = data.username || data.displayName || 'İsimsiz';
+      });
+
+      const unassignedJuzs = Object.keys(activeSession.juzs)
+        .map(Number)
+        .filter(num => activeSession.juzs[num].status === 'available');
+
+      if (unassignedJuzs.length === 0) {
+        setAlertConfig({
+           show: true,
+           title: 'Bilgi',
+           message: 'Boşta cüz bulunmuyor.',
+           type: 'alert'
+        });
+        return;
+      }
+
+      const updates: Record<string, any> = {};
+      let participantIndex = 0;
+
+      unassignedJuzs.forEach(juzNum => {
+        const pUid = activeSession.participants[participantIndex % activeSession.participants.length];
+        const pName = participantMap[pUid] || 'İsimsiz';
+        
+        updates[`juzs.${juzNum}`] = {
+          status: 'taken',
+          assignedTo: pUid,
+          assignedName: pName,
+          currentPage: 0,
+          totalPages: 20
+        };
+        
+        participantIndex++;
+      });
+
+      await updateDoc(doc(db, 'hatim_sessions', activeSession.id), updates);
+      setAlertConfig({
+        show: true,
+        title: 'Başarılı',
+        message: 'Kalan cüzler katılımcılara otomatik olarak dağıtıldı.',
+        type: 'alert'
+      });
+    } catch (error) {
+      console.error("Auto assign error:", error);
+    } finally {
+      setIsCreating(false);
+    }
   };
 
   const copySessionId = () => {
@@ -326,12 +423,50 @@ export const HatimRoomsPage: React.FC<HatimRoomsPageProps> = ({ onBack, playClic
               <span className="text-emerald-400 text-xs font-bold">{activeSession.participants.length} Kişi</span>
             </div>
           </div>
-          <div className="flex items-center justify-between bg-black/50 rounded-xl p-3 border border-neutral-700">
+          <div className="flex items-center justify-between bg-black/50 rounded-xl p-3 border border-neutral-700 mb-4">
             <span className="text-xl font-mono font-bold text-white tracking-widest">{activeSession.id}</span>
             <button onClick={copySessionId} className="text-neutral-400 hover:text-white transition-colors">
               {copied ? <Check size={20} className="text-emerald-500" /> : <Copy size={20} />}
             </button>
           </div>
+          
+          <div className="flex gap-2">
+            <button 
+              onClick={() => setShowHowTo(!showHowTo)}
+              className="flex-1 py-2 bg-neutral-700 hover:bg-neutral-600 text-white text-xs font-bold rounded-xl transition-colors flex items-center justify-center gap-1"
+            >
+              <HelpCircle size={14} />
+              Nasıl Kullanılır?
+            </button>
+            {activeSession.host === user?.uid && (
+              <button 
+                onClick={handleAutoAssign}
+                disabled={isCreating}
+                className="flex-1 py-2 bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-bold rounded-xl transition-colors flex items-center justify-center gap-1 disabled:opacity-50"
+              >
+                <Users size={14} />
+                Otomatik Dağıt
+              </button>
+            )}
+          </div>
+          
+          <AnimatePresence>
+            {showHowTo && (
+              <motion.div 
+                initial={{ height: 0, opacity: 0 }}
+                animate={{ height: 'auto', opacity: 1 }}
+                exit={{ height: 0, opacity: 0 }}
+                className="overflow-hidden"
+              >
+                <div className="mt-4 p-3 bg-neutral-900 rounded-xl border border-neutral-700 text-xs text-neutral-400 space-y-2">
+                  <p>• <strong>Cüz Almak:</strong> Boş bir cüze tıklayarak üzerinize alabilirsiniz.</p>
+                  <p>• <strong>İlerleme Kaydetmek:</strong> Üzerinize aldığınız cüze tekrar tıklayarak okuduğunuz sayfaları kaydedebilirsiniz.</p>
+                  <p>• <strong>Bilgi:</strong> Cüz kutusunun sağ üstündeki <Info size={10} className="inline" /> ikonuna tıklayarak cüzün hangi sayfalarda ve surelerde olduğunu görebilirsiniz.</p>
+                  <p>• <strong>Otomatik Dağıtım:</strong> Oda kurucusu, boşta kalan cüzleri odadaki kişilere otomatik olarak dağıtabilir.</p>
+                </div>
+              </motion.div>
+            )}
+          </AnimatePresence>
         </div>
 
         <div className="text-center">
@@ -363,19 +498,34 @@ export const HatimRoomsPage: React.FC<HatimRoomsPageProps> = ({ onBack, playClic
             }
 
             return (
-              <button
-                key={juzNum}
-                onClick={() => handleJuzAction(juzNum, status)}
-                className={`relative p-3 rounded-xl border flex flex-col items-center justify-center gap-1 transition-all ${bgColor} ${borderColor} hover:brightness-110`}
-              >
-                <span className={`text-lg font-bold ${textColor}`}>{juzNum}</span>
-                <span className="text-[10px] truncate w-full text-center text-neutral-500">
-                  {status.status === 'available' ? 'Boş' : status.assignedName?.split(' ')[0]}
-                </span>
-                {status.status === 'completed' && (
-                  <Check size={12} className="absolute top-1 right-1 text-emerald-500" />
-                )}
-              </button>
+              <div key={juzNum} className="relative">
+                <button
+                  onClick={() => handleJuzAction(juzNum, status)}
+                  className={`w-full relative p-3 rounded-xl border flex flex-col items-center justify-center gap-1 transition-all ${bgColor} ${borderColor} hover:brightness-110`}
+                >
+                  <span className={`text-lg font-bold ${textColor}`}>{juzNum}</span>
+                  <span className="text-[10px] truncate w-full text-center text-neutral-500">
+                    {status.status === 'available' ? 'Boş' : status.assignedName?.split(' ')[0]}
+                  </span>
+                  {status.status === 'completed' && (
+                    <Check size={12} className="absolute top-1 left-1 text-emerald-500" />
+                  )}
+                  {status.status === 'taken' && status.currentPage !== undefined && status.totalPages !== undefined && (
+                    <div className="w-full h-1 bg-black/50 rounded-full mt-1 overflow-hidden">
+                      <div 
+                        className="h-full bg-blue-500 transition-all" 
+                        style={{ width: `${(status.currentPage / status.totalPages) * 100}%` }}
+                      />
+                    </div>
+                  )}
+                </button>
+                <button 
+                  onClick={(e) => { e.stopPropagation(); setShowJuzDetails(juzNum); }}
+                  className="absolute top-1 right-1 p-1 text-neutral-500 hover:text-white transition-colors"
+                >
+                  <Info size={12} />
+                </button>
+              </div>
             );
           })}
         </div>
@@ -529,6 +679,145 @@ export const HatimRoomsPage: React.FC<HatimRoomsPageProps> = ({ onBack, playClic
                   Tamam
                 </button>
               </div>
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+      {/* Juz Details Modal */}
+      <AnimatePresence>
+        {showJuzDetails !== null && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="fixed inset-0 z-[60] flex items-center justify-center bg-black/80 p-4 backdrop-blur-sm"
+            onClick={() => setShowJuzDetails(null)}
+          >
+            <motion.div
+              initial={{ scale: 0.9, y: 20 }}
+              animate={{ scale: 1, y: 0 }}
+              exit={{ scale: 0.9, y: 20 }}
+              onClick={(e) => e.stopPropagation()}
+              className="bg-neutral-900 border border-neutral-800 rounded-3xl p-6 w-full max-w-sm shadow-2xl relative"
+            >
+              <button 
+                onClick={() => setShowJuzDetails(null)}
+                className="absolute top-4 right-4 text-neutral-500 hover:text-white transition-colors"
+              >
+                <X size={20} />
+              </button>
+              
+              <div className="text-center mb-6">
+                <div className="w-16 h-16 bg-neutral-800 rounded-full flex items-center justify-center mx-auto mb-4 border border-neutral-700">
+                  <span className="text-2xl font-bold text-white">{showJuzDetails}</span>
+                </div>
+                <h3 className="text-xl font-bold text-white mb-1">{showJuzDetails}. Cüz</h3>
+                <p className="text-neutral-400 text-sm">Detaylı Bilgiler</p>
+              </div>
+              
+              <div className="space-y-4">
+                <div className="bg-neutral-800/50 p-4 rounded-2xl border border-neutral-700">
+                  <p className="text-xs text-neutral-500 uppercase tracking-wider mb-1 font-bold">Sayfa Aralığı</p>
+                  <p className="text-white font-medium">{JUZ_DETAILS[showJuzDetails]?.pages || 'Bilinmiyor'}</p>
+                </div>
+                <div className="bg-neutral-800/50 p-4 rounded-2xl border border-neutral-700">
+                  <p className="text-xs text-neutral-500 uppercase tracking-wider mb-1 font-bold">İçerdiği Sureler</p>
+                  <p className="text-white font-medium leading-relaxed">{JUZ_DETAILS[showJuzDetails]?.surahs || 'Bilinmiyor'}</p>
+                </div>
+              </div>
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
+      {/* Juz Progress Modal */}
+      <AnimatePresence>
+        {selectedJuz !== null && activeSession && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="fixed inset-0 z-[60] flex items-center justify-center bg-black/80 p-4 backdrop-blur-sm"
+            onClick={() => setSelectedJuz(null)}
+          >
+            <motion.div
+              initial={{ scale: 0.9, y: 20 }}
+              animate={{ scale: 1, y: 0 }}
+              exit={{ scale: 0.9, y: 20 }}
+              onClick={(e) => e.stopPropagation()}
+              className="bg-neutral-900 border border-neutral-800 rounded-3xl p-6 w-full max-w-sm shadow-2xl relative"
+            >
+              <button 
+                onClick={() => setSelectedJuz(null)}
+                className="absolute top-4 right-4 text-neutral-500 hover:text-white transition-colors"
+              >
+                <X size={20} />
+              </button>
+              
+              <div className="text-center mb-6">
+                <h3 className="text-xl font-bold text-white mb-1">{selectedJuz}. Cüz İlerlemesi</h3>
+                <p className="text-neutral-400 text-sm">Okuduğunuz sayfaları kaydedin</p>
+              </div>
+              
+              <div className="flex flex-col items-center justify-center py-6">
+                <div className="text-5xl font-bold text-white mb-2">
+                  {activeSession.juzs[selectedJuz].currentPage || 0}
+                  <span className="text-2xl text-neutral-500"> / {activeSession.juzs[selectedJuz].totalPages || 20}</span>
+                </div>
+                <p className="text-neutral-400 text-sm mb-8">Sayfa</p>
+                
+                <div className="flex items-center gap-6">
+                  <button 
+                    onClick={async () => {
+                      playClick();
+                      const current = activeSession.juzs[selectedJuz].currentPage || 0;
+                      if (current > 0) {
+                        await updateDoc(doc(db, 'hatim_sessions', activeSession.id), {
+                          [`juzs.${selectedJuz}.currentPage`]: current - 1,
+                          [`juzs.${selectedJuz}.status`]: 'taken'
+                        });
+                      }
+                    }}
+                    className="w-14 h-14 rounded-full bg-neutral-800 flex items-center justify-center text-white hover:bg-neutral-700 transition-colors"
+                  >
+                    <span className="text-2xl font-bold">-</span>
+                  </button>
+                  
+                  <button 
+                    onClick={async () => {
+                      playClick();
+                      const current = activeSession.juzs[selectedJuz].currentPage || 0;
+                      const total = activeSession.juzs[selectedJuz].totalPages || 20;
+                      if (current < total) {
+                        const newCurrent = current + 1;
+                        await updateDoc(doc(db, 'hatim_sessions', activeSession.id), {
+                          [`juzs.${selectedJuz}.currentPage`]: newCurrent,
+                          [`juzs.${selectedJuz}.status`]: newCurrent >= total ? 'completed' : 'taken'
+                        });
+                        if (newCurrent >= total) {
+                          setSelectedJuz(null);
+                        }
+                      }
+                    }}
+                    className="w-16 h-16 rounded-full bg-emerald-600 flex items-center justify-center text-white hover:bg-emerald-500 transition-colors shadow-lg shadow-emerald-900/50"
+                  >
+                    <Plus size={32} />
+                  </button>
+                </div>
+              </div>
+              
+              <button 
+                onClick={async () => {
+                  playClick();
+                  await updateDoc(doc(db, 'hatim_sessions', activeSession.id), {
+                    [`juzs.${selectedJuz}`]: { status: 'available', assignedTo: null, assignedName: null, currentPage: 0, totalPages: 20 }
+                  });
+                  setSelectedJuz(null);
+                }}
+                className="w-full py-3 mt-4 text-red-500 font-bold hover:bg-red-500/10 rounded-xl transition-colors"
+              >
+                Cüzü Bırak
+              </button>
             </motion.div>
           </motion.div>
         )}

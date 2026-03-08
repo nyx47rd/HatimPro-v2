@@ -35,7 +35,7 @@ export const ZikirPage: React.FC<ZikirPageProps> = ({ onBack, playClick, joinSes
   
   // Active Task State
   const [activeTask, setActiveTask] = useState<ZikirTask | null>(null);
-  const [mutualFollowers, setMutualFollowers] = useState<{uid: string, displayName: string, photoURL: string}[]>([]);
+  const [mutualFollowers, setMutualFollowers] = useState<{uid: string, username: string, photoURL: string}[]>([]);
   
   // Create Task Form State
   const [createModalTab, setCreateModalTab] = useState<'create' | 'join'>('create');
@@ -158,7 +158,7 @@ export const ZikirPage: React.FC<ZikirPageProps> = ({ onBack, playClick, joinSes
           if (userData.following?.includes(user.uid)) {
             mutualsData.push({
               uid: userData.uid,
-              displayName: userData.displayName || 'İsimsiz',
+              username: userData.username || userData.displayName || 'İsimsiz',
               photoURL: userData.photoURL || `https://api.dicebear.com/7.x/avataaars/svg?seed=${userData.uid}`
             });
           }
@@ -322,7 +322,7 @@ export const ZikirPage: React.FC<ZikirPageProps> = ({ onBack, playClick, joinSes
         userId: inviteeUid,
         type: 'zikir_invite',
         senderId: user.uid,
-        senderName: profile.displayName || 'Bir kullanıcı',
+        senderName: profile.username || profile.displayName || 'Bir kullanıcı',
         sessionId: activeTask.id,
         sessionName: activeTask.name,
         createdAt: new Date().toISOString(),
@@ -798,8 +798,8 @@ export const ZikirPage: React.FC<ZikirPageProps> = ({ onBack, playClick, joinSes
                     return (
                       <div key={friend.uid} className="flex items-center justify-between bg-black/50 p-3 rounded-2xl border border-neutral-800">
                         <div className="flex items-center gap-3">
-                          <img src={friend.photoURL} alt={friend.displayName} className="w-10 h-10 rounded-full" referrerPolicy="no-referrer" />
-                          <span className="font-bold text-white text-sm">{friend.displayName}</span>
+                          <img src={friend.photoURL} alt={friend.username} className="w-10 h-10 rounded-full" referrerPolicy="no-referrer" />
+                          <span className="font-bold text-white text-sm">{friend.username}</span>
                         </div>
                         <button
                           onClick={() => handleInvite(friend.uid)}
