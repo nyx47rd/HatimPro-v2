@@ -307,6 +307,39 @@ export const HatimRoomsPage: React.FC<HatimRoomsPageProps> = ({ onBack, playClic
     }
   };
 
+  const handleResetAll = async () => {
+    playClick();
+    if (!user || !activeSession || activeSession.host !== user.uid) return;
+
+    setAlertConfig({
+      show: true,
+      title: 'Tümünü Boşalt',
+      message: 'Tüm cüzleri boşaltmak istediğinize emin misiniz? Bu işlem geri alınamaz.',
+      type: 'confirm',
+      onConfirm: async () => {
+        setIsCreating(true);
+        try {
+          const updates: Record<string, any> = {};
+          for (let i = 1; i <= 30; i++) {
+            updates[`juzs.${i}`] = {
+              status: 'available',
+              assignedTo: null,
+              assignedName: null,
+              currentPage: 0,
+              totalPages: 20
+            };
+          }
+          await updateDoc(doc(db, 'hatim_sessions', activeSession.id), updates);
+          setAlertConfig(null);
+        } catch (error) {
+          console.error("Reset all error:", error);
+        } finally {
+          setIsCreating(false);
+        }
+      }
+    });
+  };
+
   const copySessionId = () => {
     if (activeSession) {
       navigator.clipboard.writeText(activeSession.id);
@@ -439,14 +472,24 @@ export const HatimRoomsPage: React.FC<HatimRoomsPageProps> = ({ onBack, playClic
               Nasıl Kullanılır?
             </button>
             {activeSession.host === user?.uid && (
-              <button 
-                onClick={handleAutoAssign}
-                disabled={isCreating}
-                className="flex-1 py-2 bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-bold rounded-xl transition-colors flex items-center justify-center gap-1 disabled:opacity-50"
-              >
-                <Users size={14} />
-                Otomatik Dağıt
-              </button>
+              <>
+                <button 
+                  onClick={handleAutoAssign}
+                  disabled={isCreating}
+                  className="flex-1 py-2 bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-bold rounded-xl transition-colors flex items-center justify-center gap-1 disabled:opacity-50"
+                >
+                  <Users size={14} />
+                  Dağıt
+                </button>
+                <button 
+                  onClick={handleResetAll}
+                  disabled={isCreating}
+                  className="flex-1 py-2 bg-red-600/80 hover:bg-red-500 text-white text-xs font-bold rounded-xl transition-colors flex items-center justify-center gap-1 disabled:opacity-50"
+                >
+                  <Trash2 size={14} />
+                  Sıfırla
+                </button>
+              </>
             )}
           </div>
           
@@ -716,6 +759,35 @@ export const HatimRoomsPage: React.FC<HatimRoomsPageProps> = ({ onBack, playClic
               </div>
               
               <div className="space-y-4">
+                {activeSession?.juzs[showJuzDetails]?.status !== 'available' && (
+                  <div className="bg-neutral-800/50 p-4 rounded-2xl border border-neutral-700">
+                    <p className="text-xs text-neutral-500 uppercase tracking-wider mb-1 font-bold">Cüzü Alan Kişi</p>
+                    <div className="flex items-center justify-between">
+                      <p className="text-white font-medium">{activeSession?.juzs[showJuzDetails]?.assignedName || 'Bilinmiyor'}</p>
+                      <span className={`text-xs px-2 py-1 rounded-full font-bold ${
+                        activeSession?.juzs[showJuzDetails]?.status === 'completed' 
+                          ? 'bg-emerald-500/20 text-emerald-400' 
+                          : 'bg-blue-500/20 text-blue-400'
+                      }`}>
+                        {activeSession?.juzs[showJuzDetails]?.status === 'completed' ? 'Tamamlandı' : 'Okunuyor'}
+                      </span>
+                    </div>
+                    {activeSession?.juzs[showJuzDetails]?.status === 'taken' && activeSession?.juzs[showJuzDetails]?.currentPage !== undefined && (
+                      <div className="mt-3">
+                        <div className="flex justify-between text-xs text-neutral-400 mb-1">
+                          <span>İlerleme</span>
+                          <span>{activeSession.juzs[showJuzDetails].currentPage} / {activeSession.juzs[showJuzDetails].totalPages || 20} Sayfa</span>
+                        </div>
+                        <div className="w-full h-1.5 bg-neutral-700 rounded-full overflow-hidden">
+                          <div 
+                            className="h-full bg-blue-500 transition-all" 
+                            style={{ width: `${((activeSession.juzs[showJuzDetails].currentPage || 0) / (activeSession.juzs[showJuzDetails].totalPages || 20)) * 100}%` }}
+                          />
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                )}
                 <div className="bg-neutral-800/50 p-4 rounded-2xl border border-neutral-700">
                   <p className="text-xs text-neutral-500 uppercase tracking-wider mb-1 font-bold">Sayfa Aralığı</p>
                   <p className="text-white font-medium">{JUZ_DETAILS[showJuzDetails]?.pages || 'Bilinmiyor'}</p>
