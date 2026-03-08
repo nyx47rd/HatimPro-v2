@@ -21,15 +21,15 @@ const TUTORIAL_STEPS = [
     )
   },
   {
-    title: "Günlük Görevler",
+    title: "Okuma Takibi ve Görevler",
     icon: <ListTodo size={48} className="text-blue-500" />,
     content: (
       <div className="space-y-4 text-left text-sm text-neutral-300">
-        <p><strong>Görevler</strong> sekmesinden kendinize günlük, haftalık veya aylık okuma hedefleri belirleyebilirsiniz.</p>
+        <p><strong>Görevler</strong> sekmesinden kendinize özel okuma hedefleri belirleyebilirsiniz.</p>
         <ul className="list-disc pl-5 space-y-2 text-neutral-400">
-          <li>Yeni bir görev eklemek için sağ üstteki <strong className="text-white">+</strong> butonunu kullanın.</li>
-          <li>Görevlerinizi tamamladıkça XP (deneyim puanı) kazanırsınız.</li>
-          <li>Ana sayfadaki <strong>"Hızlı Kayıt"</strong> butonu ile günlük okuduğunuz sayfa sayısını anında sisteme girebilirsiniz.</li>
+          <li><strong>Görev Ekleme:</strong> Sağ üstteki <strong className="text-white">+</strong> butonuna basarak yeni bir hatim veya cüz hedefi başlatın.</li>
+          <li><strong>Kayıt Girme:</strong> Ana sayfadaki <strong>"İlerleme Kaydet"</strong> butonuna tıklayarak okuduğunuz sayfa sayısını sisteme işleyin.</li>
+          <li><strong>İlerleme:</strong> Görevlerinizi tamamladıkça XP kazanır ve seviye atlarsınız.</li>
         </ul>
       </div>
     )
@@ -39,12 +39,12 @@ const TUTORIAL_STEPS = [
     icon: <BookOpen size={48} className="text-purple-500" />,
     content: (
       <div className="space-y-4 text-left text-sm text-neutral-300">
-        <p>Arkadaşlarınızla veya ailenizle ortak hatimler düzenleyin.</p>
+        <p>Sevdiklerinizle birlikte ortak hatimler yapın.</p>
         <ul className="list-disc pl-5 space-y-2 text-neutral-400">
-          <li><strong>Oda Oluşturma:</strong> Yeni bir oda kurun ve kodunu sevdiklerinizle paylaşın.</li>
-          <li><strong>Cüz Alma:</strong> Boş bir cüze tıklayarak üzerinize alın.</li>
-          <li><strong>İlerleme Kaydetme:</strong> Aldığınız cüze tekrar tıklayarak okuduğunuz sayfa sayısını (örn: 5/20) kaydedin.</li>
-          <li><strong>Otomatik Dağıtım:</strong> Oda kurucusu, boşta kalan cüzleri odadaki kişilere otomatik olarak dağıtabilir.</li>
+          <li><strong>Oda Kurma:</strong> Yeni bir hatim odası açın ve oda kodunu arkadaşlarınızla paylaşın.</li>
+          <li><strong>Cüz Seçimi:</strong> Odadaki boş cüzlerden dilediğinizi üzerinize alabilirsiniz.</li>
+          <li><strong>Sayfa Takibi:</strong> Aldığınız cüzün üzerine tıklayarak o cüzde kaçıncı sayfada olduğunuzu güncelleyebilirsiniz.</li>
+          <li><strong>Tamamlama:</strong> Tüm cüzler bittiğinde hatim duası için bildirim alırsınız.</li>
         </ul>
       </div>
     )
@@ -54,26 +54,26 @@ const TUTORIAL_STEPS = [
     icon: <RotateCcw size={48} className="text-amber-500" />,
     content: (
       <div className="space-y-4 text-left text-sm text-neutral-300">
-        <p>Ortak zikir hedefleri belirleyin ve hep birlikte ulaşın.</p>
+        <p>Gerçek zamanlı zikir odalarında toplu zikir çekin.</p>
         <ul className="list-disc pl-5 space-y-2 text-neutral-400">
-          <li>Bir zikir odası oluşturun ve hedef sayıyı (örn: 10.000) belirleyin.</li>
-          <li>Arkadaşlarınızı uygulamadan doğrudan odaya davet edin.</li>
-          <li>Ekrana dokunarak zikir çekin. Herkesin çektiği zikirler anlık olarak senkronize edilir ve toplam sayıya eklenir.</li>
+          <li><strong>Canlı Katılım:</strong> Bir odaya girdiğinizde diğer kullanıcıların çektiği zikirleri anlık olarak görebilirsiniz.</li>
+          <li><strong>Zikir Çekme:</strong> Ekrana dokunarak zikrinizi çekin; her dokunuşunuz tüm katılımcıların ekranında senkronize olur.</li>
+          <li><strong>Hedef:</strong> Belirlenen hedefe ulaşıldığında oda otomatik olarak tamamlanır.</li>
         </ul>
       </div>
     )
   },
   {
-    title: "Profil ve Sıralama",
+    title: "Profil ve Sosyal Özellikler",
     icon: <Trophy size={48} className="text-yellow-500" />,
     content: (
       <div className="space-y-4 text-left text-sm text-neutral-300">
-        <p>Okumalarınızla XP kazanın, serinizi koruyun ve liderlik tablosunda yerinizi alın.</p>
+        <p>Gelişiminizi takip edin ve arkadaşlarınızla etkileşime geçin.</p>
         <ul className="list-disc pl-5 space-y-2 text-neutral-400">
-          <li><strong>XP Sistemi:</strong> Okuduğunuz her sayfa ve tamamladığınız her görev size puan kazandırır.</li>
-          <li><strong>Seri (Streak):</strong> Her gün uygulamaya girip okuma yaparak serinizi büyütün.</li>
-          <li><strong>Sıralama:</strong> Haftalık ve tüm zamanlar liderlik tablosunda arkadaşlarınızla tatlı bir rekabete girin.</li>
-          <li><strong>Arkadaşlar:</strong> Profil sekmesinden diğer kullanıcıları arayıp takip edebilirsiniz.</li>
+          <li><strong>Profil:</strong> Kendi profilinizden toplam XP, seviye ve okuma istatistiklerinizi görebilirsiniz.</li>
+          <li><strong>Takipleşme:</strong> Diğer kullanıcıları arayıp takip ederek onların ilerlemelerini görebilirsiniz.</li>
+          <li><strong>Liderlik Tablosu:</strong> "Diğer" menüsü altındaki sıralama kısmından haftalık rekabete katılın.</li>
+          <li><strong>Seri (Streak):</strong> Her gün okuma yaparak serinizi bozmadan devam ettirin.</li>
         </ul>
       </div>
     )
