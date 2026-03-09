@@ -27,8 +27,8 @@ const TUTORIAL_STEPS = [
       <div className="space-y-4 text-left text-sm text-neutral-300">
         <p><strong>Görevler</strong> sekmesinden kendinize özel okuma hedefleri belirleyebilirsiniz.</p>
         <ul className="list-disc pl-5 space-y-2 text-neutral-400">
-          <li><strong>Görev Ekleme:</strong> Sağ üstteki <strong className="text-white">+</strong> butonuna basarak yeni bir hatim veya cüz hedefi başlatın.</li>
-          <li><strong>Kayıt Girme:</strong> Ana sayfadaki <strong>"İlerleme Kaydet"</strong> butonuna tıklayarak okuduğunuz sayfa sayısını sisteme işleyin.</li>
+          <li><strong>Okumaya Başla:</strong> Bugünün kaydını yapmak için bu butonu kullanın. Zamanlayıcı başlar ve okuma bittiğinde manevi taahhüt ile kaydedilir.</li>
+          <li><strong>Geçmiş Kayıt (+):</strong> Yanındaki <strong className="text-white">+</strong> butonu <strong>sadece geçmiş günler</strong> için kayıt girmenizi sağlar.</li>
           <li><strong>İlerleme:</strong> Görevlerinizi tamamladıkça XP kazanır ve seviye atlarsınız.</li>
         </ul>
       </div>

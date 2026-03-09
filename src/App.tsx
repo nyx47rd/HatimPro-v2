@@ -483,7 +483,11 @@ function AppContent() {
   
   // Form States
   const [newPageInput, setNewPageInput] = useState<string>('');
-  const [newLogDate, setNewLogDate] = useState<string>(new Date().toISOString().split('T')[0]);
+  const [newLogDate, setNewLogDate] = useState<string>(() => {
+    const yesterday = new Date();
+    yesterday.setDate(yesterday.getDate() - 1);
+    return yesterday.toISOString().split('T')[0];
+  });
   const [startJuzSelection, setStartJuzSelection] = useState<number | null>(null);
   const [customStartPage, setCustomStartPage] = useState<string>('1');
   const [customEndPage, setCustomEndPage] = useState<string>('604');
@@ -605,6 +609,15 @@ function AppContent() {
     // To handle multiple logs on the same day correctly, we append the current time to the selected date
     const now = new Date();
     const selectedDate = new Date(newLogDate);
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    
+    if (selectedDate >= today) {
+      playDelete();
+      setErrorMessage("Bugünün kaydını sadece 'Okumaya Başla' butonu ile yapabilirsiniz.");
+      return;
+    }
+
     selectedDate.setHours(now.getHours(), now.getMinutes(), now.getSeconds(), now.getMilliseconds());
 
     const newLog: ReadingLog = {
@@ -1199,21 +1212,28 @@ function AppContent() {
             </LiquidGlassButton>
           </div>
         ) : (
-          <div className="flex gap-4">
-            <LiquidGlassButton 
-              onClick={() => handleProtectedAction(startReading)}
-              className="flex-1 py-4 px-6 font-bold flex items-center justify-center gap-2 text-white"
-              intensity="heavy"
-            >
-              <Book size={20} />
-              Okumaya Başla
-            </LiquidGlassButton>
-            <button 
-              onClick={() => handleProtectedAction(() => { playOpen(); setIsAddLogOpen(true); })}
-              className="p-4 bg-white dark:bg-neutral-800 border border-sage-200 dark:border-neutral-700 rounded-2xl text-sage-600 dark:text-white hover:bg-sage-50 transition-colors"
-            >
-              <Plus size={24} />
-            </button>
+          <div className="flex flex-col gap-3">
+            <div className="flex gap-4">
+              <LiquidGlassButton 
+                onClick={() => handleProtectedAction(startReading)}
+                className="flex-1 py-4 px-6 font-bold flex items-center justify-center gap-2 text-white"
+                intensity="heavy"
+              >
+                <Book size={20} />
+                Okumaya Başla
+              </LiquidGlassButton>
+              <button 
+                onClick={() => handleProtectedAction(() => { playOpen(); setIsAddLogOpen(true); })}
+                className="p-4 bg-white dark:bg-neutral-800 border border-sage-200 dark:border-neutral-700 rounded-2xl text-sage-600 dark:text-white hover:bg-sage-50 transition-colors"
+                title="Geçmiş Kayıt Ekle"
+              >
+                <Plus size={24} />
+              </button>
+            </div>
+            <p className="text-[10px] text-sage-400 dark:text-neutral-500 text-center px-4">
+              💡 Bugünün kaydı için <strong>Okumaya Başla</strong> butonunu kullanın. <br />
+              <strong>+</strong> butonu sadece geçmiş günler için kayıt yapmanızı sağlar.
+            </p>
           </div>
         )}
       </div>
@@ -2322,9 +2342,15 @@ function AppContent() {
                     <input 
                       type="date" 
                       value={newLogDate}
+                      max={(() => {
+                        const d = new Date();
+                        d.setDate(d.getDate() - 1);
+                        return d.toISOString().split('T')[0];
+                      })()}
                       onChange={(e) => setNewLogDate(e.target.value)}
                       className="w-full bg-sage-50 border-2 border-sage-100 rounded-2xl px-6 py-3 font-bold text-sage-800 focus:border-sage-500 focus:outline-none transition-all"
                     />
+                    <p className="text-[10px] text-sage-400 mt-1">Sadece dünden önceki günler için kayıt yapabilirsiniz.</p>
                   </div>
                   <div>
                     <label className="block text-xs font-semibold text-sage-500 mb-2 uppercase tracking-wider">
