@@ -96,6 +96,12 @@ export const ProfilePage: React.FC<ProfilePageProps> = ({ username, onBack, play
     });
   }, [profile]);
 
+  const userLevel = React.useMemo(() => {
+    if (profile?.stats?.level) return profile.stats.level;
+    if (profile?.stats?.xp) return Math.floor(Math.sqrt(profile.stats.xp / 50)) + 1;
+    return 1;
+  }, [profile]);
+
   useEffect(() => {
     const fetchProfile = async () => {
       setLoading(true);
@@ -311,12 +317,6 @@ export const ProfilePage: React.FC<ProfilePageProps> = ({ username, onBack, play
       </div>
     );
   }
-
-  const userLevel = React.useMemo(() => {
-    if (profile?.stats?.level) return profile.stats.level;
-    if (profile?.stats?.xp) return Math.floor(Math.sqrt(profile.stats.xp / 50)) + 1;
-    return 1;
-  }, [profile]);
 
   const isOwnProfile = user?.uid === profile?.uid;
   const isFollowing = currentUserProfile?.following?.includes(profile?.uid);
