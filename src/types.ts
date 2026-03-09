@@ -15,6 +15,9 @@ export interface HatimTask {
   currentPage: number;
   isCompleted: boolean;
   createdAt: string;
+  isReading?: boolean;
+  readingStartTime?: string;
+  totalReadingTime?: number; // in seconds
 }
 
 export interface HatimData {
@@ -27,7 +30,7 @@ export interface HatimData {
 export interface AppNotification {
   id: string;
   userId: string;
-  type: 'zikir_invite' | 'new_follower' | 'system_announcement';
+  type: 'zikir_invite' | 'new_follower' | 'system_announcement' | 'hatim_completed';
   senderId?: string;
   senderName?: string;
   sessionId?: string;
@@ -46,6 +49,8 @@ export interface UserStats {
   streak: number;
   xp: number;
   lastReadingDate?: string;
+  trustScore?: number;
+  totalReadingTime?: number; // in seconds
 }
 
 export interface UserProfile {
@@ -57,4 +62,11 @@ export interface UserProfile {
   following?: string[];
   followers?: string[];
   stats?: UserStats;
+  usernameChangeHistory?: number[];
+  isReading?: boolean;
+  currentReadingSession?: {
+    type: 'individual' | 'room';
+    id: string;
+    startTime: string;
+  };
 }

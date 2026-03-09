@@ -39,7 +39,8 @@ import {
   Shield,
   Book,
   Trophy,
-  BarChart2
+  BarChart2,
+  Timer
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 import { HatimData, ReadingLog, HatimTask } from './types';
@@ -979,6 +980,139 @@ function AppContent() {
     }
   };
 
+  const [isReadingMode, setIsReadingMode] = useState(false);
+  const [readingTime, setReadingTime] = useState(0);
+  const [showCommitmentModal, setShowCommitmentModal] = useState(false);
+  const readingIntervalRef = useRef<any>(null);
+
+  const startReading = async () => {
+    if (!user || !activeTask) return;
+    playClick();
+    setIsReadingMode(true);
+    setReadingTime(0);
+    
+    // Update local task
+    setData(prev => ({
+      ...prev,
+      tasks: prev.tasks.map(t => t.id === activeTask.id ? { ...t, isReading: true, readingStartTime: new Date().toISOString() } : t)
+    }));
+
+    // Update global profile status
+    await updateDoc(doc(db, 'users', user.uid), {
+      isReading: true,
+      currentReadingSession: {
+        type: 'individual',
+        id: activeTask.id,
+        startTime: new Date().toISOString()
+      }
+    });
+
+    readingIntervalRef.current = setInterval(() => {
+      setReadingTime(prev => prev + 1);
+    }, 1000);
+  };
+
+  const stopReading = async () => {
+    if (!user || !activeTask) return;
+    playClick();
+    clearInterval(readingIntervalRef.current);
+    setShowCommitmentModal(true);
+  };
+
+  const confirmReading = async () => {
+    if (!user || !activeTask) return;
+    playSuccess();
+    
+    const timeSpent = readingTime; // in seconds
+    const pagesRead = parseInt(newPageInput) || 0;
+    
+    // Trust Score Logic
+    // Average reading speed is ~2-3 mins per page (120-180s)
+    // If < 30s per page, it's suspicious
+    let trustImpact = 0;
+    if (pagesRead > 0) {
+      const secondsPerPage = timeSpent / pagesRead;
+      if (secondsPerPage < 30) {
+        trustImpact = -5; // Suspiciously fast
+      } else if (secondsPerPage > 60) {
+        trustImpact = 2; // Good pace
+      }
+    }
+
+    // Update stats in Firestore
+    const userRef = doc(db, 'users', user.uid);
+    const userSnap = await getDoc(userRef);
+    const currentStats = userSnap.data()?.stats || {};
+    const currentTrustScore = currentStats.trustScore ?? 100;
+    const currentTotalTime = currentStats.totalReadingTime || 0;
+
+    await updateDoc(userRef, {
+      isReading: false,
+      currentReadingSession: deleteField(),
+      'stats.trustScore': Math.min(100, Math.max(0, currentTrustScore + trustImpact)),
+      'stats.totalReadingTime': currentTotalTime + timeSpent
+    });
+
+    // Save the log
+    const now = new Date();
+    const selectedDate = new Date(newLogDate);
+    selectedDate.setHours(now.getHours(), now.getMinutes(), now.getSeconds(), now.getMilliseconds());
+
+    const newLog: ReadingLog = {
+      id: crypto.randomUUID(),
+      taskId: activeTask.id,
+      date: selectedDate.toISOString(),
+      pagesRead: pagesRead,
+      absolutePage: 0,
+    };
+
+    setData(prev => {
+      const allLogs = [newLog, ...prev.logs];
+      const { logs: newLogs, latestAbsolutePage } = recalculateTaskLogs(allLogs, activeTask);
+      
+      return {
+        ...prev,
+        logs: newLogs,
+        tasks: prev.tasks.map(t => t.id === activeTask.id ? {
+          ...t,
+          currentPage: latestAbsolutePage,
+          isCompleted: latestAbsolutePage >= t.endPage,
+          isReading: false,
+          totalReadingTime: (t.totalReadingTime || 0) + timeSpent
+        } : t)
+      };
+    });
+
+    setIsReadingMode(false);
+    setShowCommitmentModal(false);
+    setNewPageInput('');
+    setIsAddLogOpen(false);
+  };
+
+  const cancelReading = async () => {
+    if (!user || !activeTask) return;
+    playClick();
+    clearInterval(readingIntervalRef.current);
+    setIsReadingMode(false);
+    setShowCommitmentModal(false);
+    
+    await updateDoc(doc(db, 'users', user.uid), {
+      isReading: false,
+      currentReadingSession: deleteField()
+    });
+
+    setData(prev => ({
+      ...prev,
+      tasks: prev.tasks.map(t => t.id === activeTask.id ? { ...t, isReading: false } : t)
+    }));
+  };
+
+  const formatTime = (seconds: number) => {
+    const mins = Math.floor(seconds / 60);
+    const secs = seconds % 60;
+    return `${mins}:${secs.toString().padStart(2, '0')}`;
+  };
+
   // Views
   const renderHome = () => (
     <div className="space-y-8 pb-24">
@@ -1047,15 +1181,41 @@ function AppContent() {
       </motion.section>
 
       {/* Quick Actions */}
-      <div className="flex gap-4">
-        <LiquidGlassButton 
-          onClick={() => handleProtectedAction(() => { playOpen(); setIsAddLogOpen(true); })}
-          className="flex-1 py-4 px-6 font-bold flex items-center justify-center gap-2 text-white"
-          intensity="heavy"
-        >
-          <Plus size={20} />
-          İlerleme Kaydet
-        </LiquidGlassButton>
+      <div className="flex flex-col gap-4">
+        {isReadingMode ? (
+          <div className="bg-emerald-600 rounded-3xl p-6 text-white shadow-lg shadow-emerald-900/20 flex flex-col items-center">
+            <div className="flex items-center gap-2 mb-2">
+              <div className="w-2 h-2 bg-white rounded-full animate-pulse" />
+              <span className="text-sm font-bold uppercase tracking-widest">Şu an okunuyor</span>
+            </div>
+            <div className="text-5xl font-mono font-bold mb-6">{formatTime(readingTime)}</div>
+            <LiquidGlassButton 
+              onClick={stopReading}
+              className="w-full py-4 px-6 font-bold flex items-center justify-center gap-2 text-emerald-600 bg-white"
+              intensity="heavy"
+            >
+              <CheckCircle2 size={20} />
+              Okumayı Bitir
+            </LiquidGlassButton>
+          </div>
+        ) : (
+          <div className="flex gap-4">
+            <LiquidGlassButton 
+              onClick={() => handleProtectedAction(startReading)}
+              className="flex-1 py-4 px-6 font-bold flex items-center justify-center gap-2 text-white"
+              intensity="heavy"
+            >
+              <Book size={20} />
+              Okumaya Başla
+            </LiquidGlassButton>
+            <button 
+              onClick={() => handleProtectedAction(() => { playOpen(); setIsAddLogOpen(true); })}
+              className="p-4 bg-white dark:bg-neutral-800 border border-sage-200 dark:border-neutral-700 rounded-2xl text-sage-600 dark:text-white hover:bg-sage-50 transition-colors"
+            >
+              <Plus size={24} />
+            </button>
+          </div>
+        )}
       </div>
 
       {/* Recent History for Active Task */}
@@ -2069,6 +2229,67 @@ function AppContent() {
       </AnimatePresence>
 
       <AuthModal isOpen={isAuthModalOpen} onClose={() => setIsAuthModalOpen(false)} />
+
+      {/* Spiritual Commitment Modal */}
+      <AnimatePresence>
+        {showCommitmentModal && (
+          <div className="fixed inset-0 z-[100] flex items-center justify-center p-4">
+            <motion.div 
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              className="absolute inset-0 bg-black/90 backdrop-blur-xl"
+            />
+            <motion.div 
+              initial={{ scale: 0.9, opacity: 0 }}
+              animate={{ scale: 1, opacity: 1 }}
+              exit={{ scale: 0.9, opacity: 0 }}
+              className="bg-white dark:bg-neutral-900 border border-sage-100 dark:border-neutral-800 w-full max-w-sm rounded-3xl p-8 relative z-10 text-center"
+            >
+              <div className="w-20 h-20 bg-emerald-50 dark:bg-emerald-900/30 rounded-full flex items-center justify-center mx-auto mb-6">
+                <Shield size={40} className="text-emerald-600 dark:text-emerald-400" />
+              </div>
+              
+              <h3 className="text-xl font-bold text-sage-800 dark:text-white mb-2">Manevi Taahhüt</h3>
+              <p className="text-sage-500 dark:text-neutral-400 text-sm mb-8 leading-relaxed">
+                Okuduğunuz sayfaları kaydetmek üzeresiniz. Bu sayfaların tamamını, harflerin hakkını vererek okuduğunuzu beyan ediyor musunuz?
+              </p>
+
+              <div className="space-y-4 mb-8">
+                <div className="text-left">
+                  <label className="block text-xs font-bold text-sage-500 dark:text-neutral-400 uppercase mb-2">Kaç Sayfa Okudunuz?</label>
+                  <input 
+                    type="number" 
+                    value={newPageInput}
+                    onChange={(e) => setNewPageInput(e.target.value)}
+                    placeholder="Örn: 5"
+                    className="w-full bg-sage-50 dark:bg-neutral-800 border border-sage-200 dark:border-neutral-700 rounded-xl px-4 py-3 focus:outline-none focus:ring-2 focus:ring-sage-500 dark:text-white"
+                  />
+                </div>
+                <div className="flex items-center justify-between bg-sage-50 dark:bg-neutral-800 p-4 rounded-xl">
+                  <span className="text-sm text-sage-600 dark:text-neutral-400">Okuma Süresi:</span>
+                  <span className="font-mono font-bold text-sage-800 dark:text-white">{formatTime(readingTime)}</span>
+                </div>
+              </div>
+
+              <div className="flex flex-col gap-3">
+                <button 
+                  onClick={confirmReading}
+                  className="w-full py-4 bg-emerald-600 hover:bg-emerald-500 text-white font-bold rounded-xl transition-all shadow-lg shadow-emerald-900/20"
+                >
+                  Evet, Okudum
+                </button>
+                <button 
+                  onClick={cancelReading}
+                  className="w-full py-3 text-sage-400 hover:text-red-500 font-medium transition-colors"
+                >
+                  İptal Et
+                </button>
+              </div>
+            </motion.div>
+          </div>
+        )}
+      </AnimatePresence>
 
       {/* Add Log Modal */}
       <AnimatePresence>

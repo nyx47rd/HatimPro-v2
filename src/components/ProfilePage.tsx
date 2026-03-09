@@ -241,14 +241,30 @@ export const ProfilePage: React.FC<ProfilePageProps> = ({ username, onBack, play
     playClick();
     setError(null);
 
+    let newUsernameHistory = currentUserProfile?.usernameChangeHistory || [];
+    const now = Date.now();
+    const fourDaysAgo = now - (4 * 24 * 60 * 60 * 1000);
+
     // Check username uniqueness if changed
     if (editUsername !== currentUserProfile?.username) {
+      // Rate limit check
+      // Filter history to keep only changes within last 4 days
+      newUsernameHistory = newUsernameHistory.filter(timestamp => timestamp > fourDaysAgo);
+      
+      if (newUsernameHistory.length >= 2) {
+        setError("Kullanıcı adı 4 günde en fazla 2 kez değiştirilebilir.");
+        return;
+      }
+
       const q = query(collection(db, 'users'), where('username', '==', editUsername.toLowerCase()));
       const snap = await getDocs(q);
       if (!snap.empty) {
         setError("Bu kullanıcı adı zaten alınmış.");
         return;
       }
+      
+      // Add current change to history
+      newUsernameHistory.push(now);
     }
 
     try {
@@ -256,10 +272,12 @@ export const ProfilePage: React.FC<ProfilePageProps> = ({ username, onBack, play
         displayName: editName,
         username: editUsername.toLowerCase(),
         bio: editBio,
-        photoURL: editPhoto
+        photoURL: editPhoto,
+        usernameChangeHistory: newUsernameHistory
       });
       setIsEditing(false);
     } catch (e) {
+      console.error("Profile update error:", e);
       setError("Profil güncellenirken bir hata oluştu.");
     }
   };

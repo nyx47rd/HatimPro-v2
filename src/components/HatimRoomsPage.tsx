@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
-import { Users, Share2, Copy, Check, X, Plus, ChevronLeft, Trash2, BookOpen, Info, HelpCircle, PartyPopper } from 'lucide-react';
-import { doc, onSnapshot, setDoc, updateDoc, collection, query, where, getDocs, deleteDoc } from 'firebase/firestore';
+import { Users, Share2, Copy, Check, X, Plus, ChevronLeft, Trash2, BookOpen, Info, HelpCircle, PartyPopper, Shield, Book, Timer, CheckCircle2 } from 'lucide-react';
+import { doc, onSnapshot, setDoc, updateDoc, collection, query, where, getDocs, deleteDoc, getDoc, deleteField } from 'firebase/firestore';
 import { db } from '../lib/firebase';
 import { useAuth } from '../contexts/AuthContext';
 import { LiquidGlassButton } from './LiquidGlassButton';
@@ -19,6 +19,8 @@ interface JuzStatus {
   assignedName: string | null;
   currentPage?: number;
   totalPages?: number;
+  isReading?: boolean;
+  readingStartTime?: string;
 }
 
 interface HatimSession {
@@ -84,43 +86,158 @@ export const HatimRoomsPage: React.FC<HatimRoomsPageProps> = ({ onBack, playClic
   
   const [alertConfig, setAlertConfig] = useState<{ show: boolean; title: string; message: string; type: 'alert' | 'confirm'; onConfirm?: () => void } | null>(null);
   const [copied, setCopied] = useState(false);
-  const [showCompletionModal, setShowCompletionModal] = useState(false);
   const prevCompletedCountRef = useRef(0);
 
-  // Check for Hatim Completion
+  const [isReadingMode, setIsReadingMode] = useState(false);
+  const [readingTime, setReadingTime] = useState(0);
+  const [readingJuz, setReadingJuz] = useState<number | null>(null);
+  const [showCommitmentModal, setShowCommitmentModal] = useState(false);
+  const readingIntervalRef = useRef<any>(null);
+
+  const startReadingJuz = async (juzNum: number) => {
+    if (!user || !activeSession) return;
+    playClick();
+    setIsReadingMode(true);
+    setReadingTime(0);
+    setReadingJuz(juzNum);
+
+    // Update session in Firestore
+    await updateDoc(doc(db, 'hatim_sessions', activeSession.id), {
+      [`juzs.${juzNum}.isReading`]: true,
+      [`juzs.${juzNum}.readingStartTime`]: new Date().toISOString()
+    });
+
+    // Update global profile status
+    await updateDoc(doc(db, 'users', user.uid), {
+      isReading: true,
+      currentReadingSession: {
+        type: 'hatim_room',
+        sessionId: activeSession.id,
+        juzNumber: juzNum,
+        startTime: new Date().toISOString()
+      }
+    });
+
+    readingIntervalRef.current = setInterval(() => {
+      setReadingTime(prev => prev + 1);
+    }, 1000);
+  };
+
+  const stopReadingJuz = async () => {
+    if (!user || !activeSession || readingJuz === null) return;
+    playClick();
+    clearInterval(readingIntervalRef.current);
+    setShowCommitmentModal(true);
+  };
+
+  const confirmJuzReading = async (pagesRead: number) => {
+    if (!user || !activeSession || readingJuz === null) return;
+    playClick();
+
+    const timeSpent = readingTime;
+    
+    // Trust Score Logic
+    let trustImpact = 0;
+    if (pagesRead > 0) {
+      const secondsPerPage = timeSpent / pagesRead;
+      if (secondsPerPage < 30) trustImpact = -5;
+      else if (secondsPerPage > 60) trustImpact = 2;
+    }
+
+    const userRef = doc(db, 'users', user.uid);
+    const userSnap = await getDoc(userRef);
+    const currentStats = userSnap.data()?.stats || {};
+    const currentTrustScore = currentStats.trustScore ?? 100;
+    const currentTotalTime = currentStats.totalReadingTime || 0;
+
+    await updateDoc(userRef, {
+      isReading: false,
+      currentReadingSession: deleteField(),
+      'stats.trustScore': Math.min(100, Math.max(0, currentTrustScore + trustImpact)),
+      'stats.totalReadingTime': currentTotalTime + timeSpent
+    });
+
+    const currentJuz = activeSession.juzs[readingJuz];
+    const newCurrentPage = (currentJuz.currentPage || 0) + pagesRead;
+    const totalPages = currentJuz.totalPages || 20;
+
+    await updateDoc(doc(db, 'hatim_sessions', activeSession.id), {
+      [`juzs.${readingJuz}.isReading`]: false,
+      [`juzs.${readingJuz}.readingStartTime`]: deleteField(),
+      [`juzs.${readingJuz}.currentPage`]: Math.min(totalPages, newCurrentPage),
+      [`juzs.${readingJuz}.status`]: newCurrentPage >= totalPages ? 'completed' : 'taken'
+    });
+
+    setIsReadingMode(false);
+    setShowCommitmentModal(false);
+    setReadingJuz(null);
+    setSelectedJuz(null);
+  };
+
+  const cancelJuzReading = async () => {
+    if (!user || !activeSession || readingJuz === null) return;
+    playClick();
+    clearInterval(readingIntervalRef.current);
+    
+    await updateDoc(doc(db, 'hatim_sessions', activeSession.id), {
+      [`juzs.${readingJuz}.isReading`]: false,
+      [`juzs.${readingJuz}.readingStartTime`]: deleteField()
+    });
+
+    await updateDoc(doc(db, 'users', user.uid), {
+      isReading: false,
+      currentReadingSession: deleteField()
+    });
+
+    setIsReadingMode(false);
+    setShowCommitmentModal(false);
+    setReadingJuz(null);
+  };
+
+  const formatTime = (seconds: number) => {
+    const mins = Math.floor(seconds / 60);
+    const secs = seconds % 60;
+    return `${mins}:${secs.toString().padStart(2, '0')}`;
+  };
+
+  // Check for Hatim Completion and Send Notification
   useEffect(() => {
-    if (!activeSession) return;
+    if (!activeSession || !user) return;
     
     const completedCount = Object.values(activeSession.juzs).filter(j => j.status === 'completed').length;
     
-    // If completed count increased to 30, trigger celebration
+    // If completed count increased to 30, send notification to all participants
     if (completedCount === 30 && prevCompletedCountRef.current < 30) {
-      setShowCompletionModal(true);
-      triggerConfetti();
+      // Only the host triggers the notification to avoid duplicates
+      if (activeSession.host === user.uid) {
+        const sendCompletionNotifications = async () => {
+          try {
+            const batch = [];
+            for (const participantId of activeSession.participants) {
+              // Create a notification for each participant
+              const notifRef = doc(collection(db, 'notifications'));
+              batch.push(setDoc(notifRef, {
+                userId: participantId,
+                type: 'hatim_completed',
+                sessionId: activeSession.id,
+                sessionName: activeSession.name,
+                title: 'Hatim Tamamlandı! 🎉',
+                message: `${activeSession.name} hatmi tamamlandı. Allah kabul etsin.`,
+                createdAt: new Date().toISOString(),
+                read: false
+              }));
+            }
+            await Promise.all(batch);
+          } catch (error) {
+            console.error("Error sending completion notifications:", error);
+          }
+        };
+        sendCompletionNotifications();
+      }
     }
     
     prevCompletedCountRef.current = completedCount;
-  }, [activeSession]);
-
-  const triggerConfetti = () => {
-    const duration = 3000;
-    const animationEnd = Date.now() + duration;
-    const defaults = { startVelocity: 30, spread: 360, ticks: 60, zIndex: 100 };
-
-    const randomInRange = (min: number, max: number) => Math.random() * (max - min) + min;
-
-    const interval: any = setInterval(function() {
-      const timeLeft = animationEnd - Date.now();
-
-      if (timeLeft <= 0) {
-        return clearInterval(interval);
-      }
-
-      const particleCount = 50 * (timeLeft / duration);
-      confetti({ ...defaults, particleCount, origin: { x: randomInRange(0.1, 0.3), y: Math.random() - 0.2 } });
-      confetti({ ...defaults, particleCount, origin: { x: randomInRange(0.7, 0.9), y: Math.random() - 0.2 } });
-    }, 250);
-  };
+  }, [activeSession, user]);
 
   // Fetch Sessions
   useEffect(() => {
@@ -584,9 +701,15 @@ export const HatimRoomsPage: React.FC<HatimRoomsPageProps> = ({ onBack, playClic
                   onClick={() => handleJuzAction(juzNum, status)}
                   className={`w-full relative p-3 rounded-xl border flex flex-col items-center justify-center gap-1 transition-all ${bgColor} ${borderColor} hover:brightness-110`}
                 >
+                  {status.isReading && (
+                    <div className="absolute -top-1 -right-1 z-10">
+                      <div className="w-3 h-3 bg-blue-500 rounded-full animate-pulse shadow-lg shadow-blue-500/50" />
+                    </div>
+                  )}
                   <span className={`text-lg font-bold ${textColor}`}>{juzNum}</span>
                   <span className="text-[10px] truncate w-full text-center text-neutral-500">
                     {status.status === 'available' ? 'Boş' : status.assignedName?.split(' ')[0]}
+                    {status.isReading && " (Okuyor)"}
                   </span>
                   {status.status === 'completed' && (
                     <Check size={12} className="absolute top-1 left-1 text-emerald-500" />
@@ -870,50 +993,84 @@ export const HatimRoomsPage: React.FC<HatimRoomsPageProps> = ({ onBack, playClic
               </div>
               
               <div className="flex flex-col items-center justify-center py-6">
-                <div className="text-5xl font-bold text-white mb-2">
-                  {activeSession.juzs[selectedJuz].currentPage || 0}
-                  <span className="text-2xl text-neutral-500"> / {activeSession.juzs[selectedJuz].totalPages || 20}</span>
-                </div>
-                <p className="text-neutral-400 text-sm mb-8">Sayfa</p>
-                
-                <div className="flex items-center gap-6">
-                  <button 
-                    onClick={async () => {
-                      playClick();
-                      const current = activeSession.juzs[selectedJuz].currentPage || 0;
-                      if (current > 0) {
-                        await updateDoc(doc(db, 'hatim_sessions', activeSession.id), {
-                          [`juzs.${selectedJuz}.currentPage`]: current - 1,
-                          [`juzs.${selectedJuz}.status`]: 'taken'
-                        });
-                      }
-                    }}
-                    className="w-14 h-14 rounded-full bg-neutral-800 flex items-center justify-center text-white hover:bg-neutral-700 transition-colors"
-                  >
-                    <span className="text-2xl font-bold">-</span>
-                  </button>
-                  
-                  <button 
-                    onClick={async () => {
-                      playClick();
-                      const current = activeSession.juzs[selectedJuz].currentPage || 0;
-                      const total = activeSession.juzs[selectedJuz].totalPages || 20;
-                      if (current < total) {
-                        const newCurrent = current + 1;
-                        await updateDoc(doc(db, 'hatim_sessions', activeSession.id), {
-                          [`juzs.${selectedJuz}.currentPage`]: newCurrent,
-                          [`juzs.${selectedJuz}.status`]: newCurrent >= total ? 'completed' : 'taken'
-                        });
-                        if (newCurrent >= total) {
-                          setSelectedJuz(null);
-                        }
-                      }
-                    }}
-                    className="w-16 h-16 rounded-full bg-emerald-600 flex items-center justify-center text-white hover:bg-emerald-500 transition-colors shadow-lg shadow-emerald-900/50"
-                  >
-                    <Plus size={32} />
-                  </button>
-                </div>
+                {isReadingMode && readingJuz === selectedJuz ? (
+                  <div className="w-full space-y-6 text-center">
+                    <div className="flex flex-col items-center">
+                      <div className="flex items-center gap-2 mb-2">
+                        <div className="w-2 h-2 bg-blue-500 rounded-full animate-pulse" />
+                        <span className="text-xs font-bold text-blue-400 uppercase tracking-widest">Okuma Modu Aktif</span>
+                      </div>
+                      <div className="text-5xl font-mono font-bold text-white">{formatTime(readingTime)}</div>
+                    </div>
+                    
+                    <LiquidGlassButton 
+                      onClick={stopReadingJuz}
+                      className="w-full py-4 text-white font-bold flex items-center justify-center gap-2"
+                      intensity="heavy"
+                    >
+                      <CheckCircle2 size={20} />
+                      Okumayı Bitir
+                    </LiquidGlassButton>
+                  </div>
+                ) : (
+                  <>
+                    <div className="text-5xl font-bold text-white mb-2">
+                      {activeSession.juzs[selectedJuz].currentPage || 0}
+                      <span className="text-2xl text-neutral-500"> / {activeSession.juzs[selectedJuz].totalPages || 20}</span>
+                    </div>
+                    <p className="text-neutral-400 text-sm mb-8">Sayfa</p>
+                    
+                    <div className="flex flex-col gap-4 w-full">
+                      <div className="flex items-center justify-center gap-6">
+                        <button 
+                          onClick={async () => {
+                            playClick();
+                            const current = activeSession.juzs[selectedJuz].currentPage || 0;
+                            if (current > 0) {
+                              await updateDoc(doc(db, 'hatim_sessions', activeSession.id), {
+                                [`juzs.${selectedJuz}.currentPage`]: current - 1,
+                                [`juzs.${selectedJuz}.status`]: 'taken'
+                              });
+                            }
+                          }}
+                          className="w-14 h-14 rounded-full bg-neutral-800 flex items-center justify-center text-white hover:bg-neutral-700 transition-colors"
+                        >
+                          <span className="text-2xl font-bold">-</span>
+                        </button>
+                        
+                        <button 
+                          onClick={async () => {
+                            playClick();
+                            const current = activeSession.juzs[selectedJuz].currentPage || 0;
+                            const total = activeSession.juzs[selectedJuz].totalPages || 20;
+                            if (current < total) {
+                              const newCurrent = current + 1;
+                              await updateDoc(doc(db, 'hatim_sessions', activeSession.id), {
+                                [`juzs.${selectedJuz}.currentPage`]: newCurrent,
+                                [`juzs.${selectedJuz}.status`]: newCurrent >= total ? 'completed' : 'taken'
+                              });
+                              if (newCurrent >= total) {
+                                setSelectedJuz(null);
+                              }
+                            }
+                          }}
+                          className="w-16 h-16 rounded-full bg-emerald-600 flex items-center justify-center text-white hover:bg-emerald-500 transition-colors shadow-lg shadow-emerald-900/50"
+                        >
+                          <Plus size={32} />
+                        </button>
+                      </div>
+
+                      <LiquidGlassButton 
+                        onClick={() => startReadingJuz(selectedJuz)}
+                        className="w-full py-4 text-white font-bold flex items-center justify-center gap-2 mt-4"
+                        intensity="light"
+                      >
+                        <Timer size={20} />
+                        Okumaya Başla (Zamanlayıcı)
+                      </LiquidGlassButton>
+                    </div>
+                  </>
+                )}
               </div>
               
               <button 
@@ -932,48 +1089,68 @@ export const HatimRoomsPage: React.FC<HatimRoomsPageProps> = ({ onBack, playClic
           </motion.div>
         )}
       </AnimatePresence>
-      {/* Hatim Completion Modal */}
+      {/* Hatim Completion Modal - Removed per request */}
+
+      {/* Spiritual Commitment Modal */}
       <AnimatePresence>
-        {showCompletionModal && (
-          <motion.div
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            exit={{ opacity: 0 }}
-            className="fixed inset-0 z-[70] flex items-center justify-center bg-black/90 p-4 backdrop-blur-md"
-            onClick={() => setShowCompletionModal(false)}
-          >
-            <motion.div
-              initial={{ scale: 0.8, y: 50, opacity: 0 }}
-              animate={{ scale: 1, y: 0, opacity: 1 }}
-              exit={{ scale: 0.8, y: 50, opacity: 0 }}
-              onClick={(e) => e.stopPropagation()}
-              className="bg-neutral-900 border border-emerald-500/30 rounded-3xl p-8 w-full max-w-sm shadow-2xl relative text-center overflow-hidden"
+        {showCommitmentModal && (
+          <div className="fixed inset-0 z-[100] flex items-center justify-center p-4">
+            <motion.div 
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              className="absolute inset-0 bg-black/90 backdrop-blur-xl"
+            />
+            <motion.div 
+              initial={{ scale: 0.9, opacity: 0 }}
+              animate={{ scale: 1, opacity: 1 }}
+              exit={{ scale: 0.9, opacity: 0 }}
+              className="bg-neutral-900 border border-neutral-800 w-full max-w-sm rounded-3xl p-8 relative z-10 text-center"
             >
-              {/* Background Glow */}
-              <div className="absolute top-0 left-0 w-full h-full bg-emerald-500/5 blur-3xl -z-10" />
-              
-              <div className="w-24 h-24 bg-emerald-900/30 rounded-full flex items-center justify-center mx-auto mb-6 border border-emerald-500/30 shadow-lg shadow-emerald-900/20">
-                <PartyPopper size={48} className="text-emerald-400" />
+              <div className="w-20 h-20 bg-emerald-900/30 rounded-full flex items-center justify-center mx-auto mb-6">
+                <Shield size={40} className="text-emerald-400" />
               </div>
               
-              <h2 className="text-3xl font-bold text-white mb-2 font-serif">Elhamdülillah!</h2>
-              <h3 className="text-xl font-medium text-emerald-400 mb-4">Hatim Tamamlandı</h3>
-              
-              <p className="text-neutral-300 mb-8 leading-relaxed">
-                Bu hatim odasındaki tüm cüzler okundu. Allah (c.c) kabul etsin. Şimdi hatim duası yapabilirsiniz.
+              <h3 className="text-xl font-bold text-white mb-2">Manevi Taahhüt</h3>
+              <p className="text-neutral-400 text-sm mb-8 leading-relaxed">
+                Okuduğunuz sayfaları kaydetmek üzeresiniz. Bu sayfaların tamamını, harflerin hakkını vererek okuduğunuzu beyan ediyor musunuz?
               </p>
-              
-              <button 
-                onClick={() => {
-                  playClick();
-                  setShowCompletionModal(false);
-                }}
-                className="w-full py-4 bg-emerald-600 hover:bg-emerald-500 text-white font-bold rounded-xl transition-all shadow-lg shadow-emerald-900/40 hover:shadow-emerald-900/60 hover:scale-[1.02]"
-              >
-                Allah Kabul Etsin
-              </button>
+
+              <div className="space-y-4 mb-8">
+                <div className="text-left">
+                  <label className="block text-xs font-bold text-neutral-500 uppercase mb-2">Kaç Sayfa Okudunuz?</label>
+                  <input 
+                    type="number" 
+                    id="juzPagesInput"
+                    placeholder="Örn: 5"
+                    className="w-full bg-black border border-neutral-800 rounded-xl px-4 py-3 focus:outline-none focus:border-emerald-500 text-white"
+                  />
+                </div>
+                <div className="flex items-center justify-between bg-neutral-800 p-4 rounded-xl">
+                  <span className="text-sm text-neutral-400">Okuma Süresi:</span>
+                  <span className="font-mono font-bold text-white">{formatTime(readingTime)}</span>
+                </div>
+              </div>
+
+              <div className="flex flex-col gap-3">
+                <button 
+                  onClick={() => {
+                    const input = document.getElementById('juzPagesInput') as HTMLInputElement;
+                    confirmJuzReading(parseInt(input.value) || 0);
+                  }}
+                  className="w-full py-4 bg-emerald-600 hover:bg-emerald-500 text-white font-bold rounded-xl transition-all shadow-lg shadow-emerald-900/20"
+                >
+                  Evet, Okudum
+                </button>
+                <button 
+                  onClick={cancelJuzReading}
+                  className="w-full py-3 text-neutral-500 hover:text-red-500 font-medium transition-colors"
+                >
+                  İptal Et
+                </button>
+              </div>
             </motion.div>
-          </motion.div>
+          </div>
         )}
       </AnimatePresence>
     </div>

@@ -1,10 +1,11 @@
 import React, { useEffect, useState } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
-import { X, Check, Bell } from 'lucide-react';
+import { X, Check, Bell, PartyPopper } from 'lucide-react';
 import { collection, query, where, onSnapshot, doc, updateDoc, arrayUnion } from 'firebase/firestore';
 import { db } from '../lib/firebase';
 import { useAuth } from '../contexts/AuthContext';
 import { AppNotification } from '../types';
+import confetti from 'canvas-confetti';
 
 interface NotificationsPanelProps {
   isOpen: boolean;
@@ -39,6 +40,36 @@ export const NotificationsPanel: React.FC<NotificationsPanelProps> = ({ isOpen, 
 
     return () => unsubscribe();
   }, [user]);
+
+  // Trigger confetti when panel opens if there is an unread hatim_completed notification
+  useEffect(() => {
+    if (isOpen) {
+      const hasUnreadHatim = notifications.some(n => n.type === 'hatim_completed' && !n.read);
+      if (hasUnreadHatim) {
+        triggerConfetti();
+      }
+    }
+  }, [isOpen, notifications]);
+
+  const triggerConfetti = () => {
+    const duration = 3000;
+    const animationEnd = Date.now() + duration;
+    const defaults = { startVelocity: 30, spread: 360, ticks: 60, zIndex: 100 };
+
+    const randomInRange = (min: number, max: number) => Math.random() * (max - min) + min;
+
+    const interval: any = setInterval(function() {
+      const timeLeft = animationEnd - Date.now();
+
+      if (timeLeft <= 0) {
+        return clearInterval(interval);
+      }
+
+      const particleCount = 50 * (timeLeft / duration);
+      confetti({ ...defaults, particleCount, origin: { x: randomInRange(0.1, 0.3), y: Math.random() - 0.2 } });
+      confetti({ ...defaults, particleCount, origin: { x: randomInRange(0.7, 0.9), y: Math.random() - 0.2 } });
+    }, 250);
+  };
 
   const handleAccept = async (notification: AppNotification) => {
     playClick();
@@ -178,6 +209,24 @@ export const NotificationsPanel: React.FC<NotificationsPanelProps> = ({ isOpen, 
                           <p className="text-sm font-bold text-sage-800 dark:text-white">
                             {notif.title}
                           </p>
+                        </div>
+                        <p className="text-sm text-sage-600 dark:text-sage-300 mb-2">
+                          {notif.message}
+                        </p>
+                        <p className="text-xs text-sage-500 dark:text-sage-400">
+                          {new Date(notif.createdAt).toLocaleString('tr-TR')}
+                        </p>
+                      </>
+                    )}
+                    {notif.type === 'hatim_completed' && (
+                      <>
+                        <div className="flex items-start justify-between mb-2">
+                          <div className="flex items-center gap-2">
+                            <PartyPopper className="text-emerald-500" size={20} />
+                            <p className="text-sm font-bold text-sage-800 dark:text-white">
+                              {notif.title}
+                            </p>
+                          </div>
                         </div>
                         <p className="text-sm text-sage-600 dark:text-sage-300 mb-2">
                           {notif.message}
