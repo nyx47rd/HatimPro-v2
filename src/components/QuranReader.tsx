@@ -48,8 +48,25 @@ export const QuranReader: React.FC<QuranReaderProps> = ({ onClose, playClick }) 
   const [targetAyah, setTargetAyah] = useState<number | null>(null);
   const [isFullscreen, setIsFullscreen] = useState(false);
   
-  const audioRef = useRef<HTMLAudioElement | null>(null);
+  const currentAudioRef = useRef<HTMLAudioElement | null>(null);
+  const nextAudioRef = useRef<HTMLAudioElement | null>(null);
   const ayahRefs = useRef<(HTMLDivElement | null)[]>([]);
+
+  // Initialize audio elements
+  useEffect(() => {
+    currentAudioRef.current = new Audio();
+    nextAudioRef.current = new Audio();
+    return () => {
+      if (currentAudioRef.current) {
+        currentAudioRef.current.pause();
+        currentAudioRef.current.src = '';
+      }
+      if (nextAudioRef.current) {
+        nextAudioRef.current.pause();
+        nextAudioRef.current.src = '';
+      }
+    };
+  }, []);
 
   // Fetch Surah list
   useEffect(() => {
@@ -66,8 +83,8 @@ export const QuranReader: React.FC<QuranReaderProps> = ({ onClose, playClick }) 
   useEffect(() => {
     setLoading(true);
     setIsPlaying(false);
-    if (audioRef.current) {
-      audioRef.current.pause();
+    if (currentAudioRef.current) {
+      currentAudioRef.current.pause();
     }
     // Using Alafasy for crystal clear recitation
     fetch(`https://api.alquran.cloud/v1/surah/${selectedSurah}/ar.alafasy`)
@@ -89,46 +106,64 @@ export const QuranReader: React.FC<QuranReaderProps> = ({ onClose, playClick }) 
       });
   }, [selectedSurah]);
 
-  // Handle Audio Playback and Preloading
+  // Handle Audio Playback and Preloading (Double Buffering FIFO)
   useEffect(() => {
     if (!surahData || !surahData.ayahs || !surahData.ayahs[currentAyahIndex]) return;
 
-    // Preload next 3 ayahs for slow internet
-    const preloadCount = 3;
-    for (let i = 1; i <= preloadCount; i++) {
-      const nextIndex = currentAyahIndex + i;
-      if (nextIndex < surahData.ayahs.length) {
-        const audio = new Audio();
-        audio.src = surahData.ayahs[nextIndex].audio;
-        audio.preload = 'auto';
-      }
-    }
+    const currentAyah = surahData.ayahs[currentAyahIndex];
+    const nextAyah = surahData.ayahs[currentAyahIndex + 1];
 
-    if (isPlaying) {
-      if (!audioRef.current) {
-        audioRef.current = new Audio(surahData.ayahs[currentAyahIndex].audio);
-      } else {
-        audioRef.current.src = surahData.ayahs[currentAyahIndex].audio;
+    const playCurrent = async () => {
+      if (!currentAudioRef.current) return;
+
+      // If the current audio is not the one we want to play
+      if (currentAudioRef.current.src !== currentAyah.audio) {
+        // Check if nextAudioRef has it preloaded
+        if (nextAudioRef.current && nextAudioRef.current.src === currentAyah.audio) {
+          // Swap references for gapless playback
+          const temp = currentAudioRef.current;
+          currentAudioRef.current = nextAudioRef.current;
+          nextAudioRef.current = temp;
+        } else {
+          currentAudioRef.current.src = currentAyah.audio;
+          currentAudioRef.current.load();
+        }
       }
-      
-      audioRef.current.onended = () => {
+
+      currentAudioRef.current.onended = () => {
         if (currentAyahIndex < surahData.ayahs.length - 1) {
           setCurrentAyahIndex(prev => prev + 1);
         } else {
           setIsPlaying(false);
         }
       };
-      
-      audioRef.current.play().catch(console.error);
-    } else {
-      if (audioRef.current) {
-        audioRef.current.pause();
+
+      if (isPlaying) {
+        try {
+          await currentAudioRef.current.play();
+        } catch (err) {
+          console.error("Audio playback error:", err);
+          setIsPlaying(false);
+        }
+      } else {
+        currentAudioRef.current.pause();
+      }
+    };
+
+    playCurrent();
+
+    // Preload next ayah in background thread
+    if (nextAyah && nextAudioRef.current) {
+      if (nextAudioRef.current.src !== nextAyah.audio) {
+        nextAudioRef.current.src = nextAyah.audio;
+        nextAudioRef.current.preload = 'auto';
+        nextAudioRef.current.load();
       }
     }
 
     return () => {
-      if (audioRef.current) {
-        audioRef.current.onended = null;
+      if (currentAudioRef.current) {
+        currentAudioRef.current.onended = null;
       }
     };
   }, [currentAyahIndex, isPlaying, surahData]);
@@ -148,11 +183,27 @@ export const QuranReader: React.FC<QuranReaderProps> = ({ onClose, playClick }) 
     setIsPlaying(!isPlaying);
   };
 
+  const normalizeText = (text: string) => {
+    return text
+      .toLowerCase()
+      .replace(/â/g, 'a')
+      .replace(/î/g, 'i')
+      .replace(/û/g, 'u')
+      .replace(/ı/g, 'i')
+      .replace(/ö/g, 'o')
+      .replace(/ü/g, 'u')
+      .replace(/ş/g, 's')
+      .replace(/ğ/g, 'g')
+      .replace(/ç/g, 'c')
+      .replace(/[^a-z0-9]/g, '');
+  };
+
   const handleSearch = (e: React.FormEvent) => {
     e.preventDefault();
     if (!searchQuery.trim()) return;
     
     const query = searchQuery.trim().toLowerCase();
+    const normalizedQuery = normalizeText(query);
     
     // Check for Surah:Ayah format (e.g., 2:255 or 2 255)
     const match = query.match(/^(\d+)[^\d]+(\d+)$/);
@@ -178,10 +229,10 @@ export const QuranReader: React.FC<QuranReaderProps> = ({ onClose, playClick }) 
     }
     
     // Search by name
-    const foundSurah = surahs.find(s => 
-      s.name.toLowerCase().includes(query) || 
-      (SURAH_NAMES_TR[s.number - 1] || '').toLowerCase().includes(query)
-    );
+    const foundSurah = surahs.find(s => {
+      const trName = SURAH_NAMES_TR[s.number - 1] || '';
+      return normalizeText(trName).includes(normalizedQuery) || s.name.includes(query);
+    });
     
     if (foundSurah) {
       setSelectedSurah(foundSurah.number);
@@ -327,18 +378,19 @@ export const QuranReader: React.FC<QuranReaderProps> = ({ onClose, playClick }) 
             </div>
 
             {/* Main Content Area - Scrollable with Fade Mask */}
-            <div className="relative z-10 flex-1 flex flex-col items-center justify-center px-4 md:px-12 lg:px-24 overflow-hidden">
-              <div className="w-full h-full max-h-[70vh] flex flex-col items-center justify-center fade-mask overflow-y-auto scrollbar-hide py-12">
+            <div className="relative z-10 flex-1 flex flex-col items-center px-4 md:px-12 lg:px-24 overflow-hidden">
+              <div className="w-full h-full max-h-[75vh] flex flex-col items-center fade-mask overflow-y-auto scrollbar-hide py-16">
                 <motion.div 
                   key={currentAyahIndex}
                   initial={{ opacity: 0, filter: 'blur(10px)', scale: 0.95 }}
                   animate={{ opacity: 1, filter: 'blur(0px)', scale: 1 }}
                   exit={{ opacity: 0, filter: 'blur(10px)', scale: 1.05 }}
                   transition={{ duration: 1.2, ease: [0.22, 1, 0.36, 1] }}
-                  className="w-full max-w-5xl text-center px-4"
+                  className="w-full max-w-5xl text-center px-4 my-auto"
                 >
                   <p 
-                    className="text-4xl md:text-5xl lg:text-7xl leading-[2.5] md:leading-[2.5] lg:leading-[2.5] font-arabic text-white text-glow" 
+                    className="text-4xl md:text-5xl lg:text-6xl font-arabic text-white text-glow pb-8" 
+                    style={{ lineHeight: '2.5' }}
                     dir="rtl"
                   >
                     {surahData?.ayahs[currentAyahIndex]?.text}
