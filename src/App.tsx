@@ -40,7 +40,8 @@ import {
   Book,
   Trophy,
   BarChart2,
-  Timer
+  Timer,
+  Mic
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 import { HatimData, ReadingLog, HatimTask } from './types';
@@ -107,6 +108,7 @@ const LazyNotificationsPanel = React.lazy(() => import('./components/Notificatio
 
 const LazyHatimRoomsPage = React.lazy(() => import('./components/HatimRoomsPage').then(module => ({ default: module.HatimRoomsPage })));
 import { TutorialOverlay } from './components/TutorialOverlay';
+import { QuranReader } from './components/QuranReader';
 
 type View = 'home' | 'tasks' | 'history' | 'settings' | 'zikir' | 'hatim-rooms' | 'profile' | 'privacy' | 'terms' | 'more' | 'data-deletion' | 'leaderboard' | 'stats';
 
@@ -292,6 +294,7 @@ function AppContent() {
   }, [user, authLoading, profile, data]);
 
   const [isAddLogOpen, setIsAddLogOpen] = useState(false);
+  const [isQuranReaderOpen, setIsQuranReaderOpen] = useState(false);
   const [isAddTaskOpen, setIsAddTaskOpen] = useState(false);
   const [isJuzPickerOpen, setIsJuzPickerOpen] = useState(false);
   const [isResetConfirmOpen, setIsResetConfirmOpen] = useState(false);
@@ -1230,6 +1233,13 @@ function AppContent() {
                 <Plus size={24} />
               </button>
             </div>
+            <button 
+              onClick={() => handleProtectedAction(() => { playOpen(); setIsQuranReaderOpen(true); })}
+              className="w-full py-4 px-6 rounded-2xl font-bold flex items-center justify-center gap-2 bg-gradient-to-r from-emerald-500 to-teal-500 text-white shadow-lg shadow-emerald-500/20 hover:opacity-90 transition-opacity"
+            >
+              <Mic size={20} />
+              Sesli Kur'an Oku
+            </button>
             <p className="text-[10px] text-sage-400 dark:text-neutral-500 text-center px-4">
               💡 Bugünün kaydı için <strong>Okumaya Başla</strong> butonunu kullanın. <br />
               <strong>+</strong> butonu sadece geçmiş günler için kayıt yapmanızı sağlar.
@@ -2667,6 +2677,15 @@ function AppContent() {
               </div>
             </motion.div>
           </div>
+        )}
+      </AnimatePresence>
+
+      <AnimatePresence>
+        {isQuranReaderOpen && (
+          <QuranReader 
+            onClose={() => setIsQuranReaderOpen(false)} 
+            playClick={playClick}
+          />
         )}
       </AnimatePresence>
 

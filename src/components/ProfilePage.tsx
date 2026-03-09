@@ -73,6 +73,17 @@ export const ProfilePage: React.FC<ProfilePageProps> = ({ username, onBack, play
   const [error, setError] = useState<string | null>(null);
 
   const [followersCount, setFollowersCount] = useState(0);
+  const [activeSlide, setActiveSlide] = useState(0);
+  const scrollRef = React.useRef<HTMLDivElement>(null);
+
+  const handleScroll = () => {
+    if (scrollRef.current) {
+      const scrollLeft = scrollRef.current.scrollLeft;
+      const width = scrollRef.current.offsetWidth;
+      const index = Math.round(scrollLeft / width);
+      setActiveSlide(index);
+    }
+  };
 
   // Calculate chart data
   const chartData = React.useMemo(() => {
@@ -101,6 +112,10 @@ export const ProfilePage: React.FC<ProfilePageProps> = ({ username, onBack, play
     if (profile?.stats?.xp) return Math.floor(Math.sqrt(profile.stats.xp / 50)) + 1;
     return 1;
   }, [profile]);
+
+  const currentLevelXP = Math.pow(userLevel - 1, 2) * 50;
+  const nextLevelXP = Math.pow(userLevel, 2) * 50;
+  const xpProgress = Math.min(100, Math.max(0, ((profile?.stats?.xp || 0) - currentLevelXP) / (nextLevelXP - currentLevelXP) * 100));
 
   useEffect(() => {
     const fetchProfile = async () => {
@@ -361,26 +376,92 @@ export const ProfilePage: React.FC<ProfilePageProps> = ({ username, onBack, play
           <p className="text-white/60 text-sm mb-4">@{profile?.username || 'kullaniciadi'}</p>
           {profile?.bio && <p className="text-sm text-white/80 max-w-sm mb-6">{profile.bio}</p>}
           
-          {/* XP and Streak Badges */}
-          <div className="flex gap-4 mb-6">
-            <div className="flex items-center gap-2 bg-orange-500/20 text-orange-500 px-4 py-2 rounded-full border border-orange-500/20">
-              <Flame size={20} fill="currentColor" />
-              <span className="font-bold">{profile?.stats?.streak || 0} Gün Seri</span>
+          {/* Stats Carousel */}
+          <div className="w-full mb-8 -mx-6 px-6">
+            <div 
+              ref={scrollRef}
+              onScroll={handleScroll}
+              className="flex gap-4 overflow-x-auto snap-x snap-mandatory pb-4 [&::-webkit-scrollbar]:hidden [-ms-overflow-style:none] [scrollbar-width:none]"
+            >
+              {/* Card 1: Level & XP */}
+              <div className="w-[85%] shrink-0 snap-center bg-gradient-to-br from-blue-900/40 to-purple-900/40 rounded-3xl p-6 border border-white/10 flex flex-col justify-between aspect-[3/2]">
+                <div className="flex justify-between items-start mb-4">
+                  <div>
+                    <p className="text-white/60 text-sm font-bold uppercase tracking-wider mb-1">Seviye</p>
+                    <h3 className="text-4xl font-black text-white">{userLevel}</h3>
+                  </div>
+                  <div className="bg-blue-500/20 p-3 rounded-2xl text-blue-400">
+                    <TrendingUp size={24} />
+                  </div>
+                </div>
+                <div className="mt-auto">
+                  <div className="flex justify-between text-sm mb-2 font-bold">
+                    <span className="text-white/80">{profile?.stats?.xp || 0} XP</span>
+                    <span className="text-white/40">{nextLevelXP} XP</span>
+                  </div>
+                  <div className="h-2 bg-black/50 rounded-full overflow-hidden">
+                    <div className="h-full bg-gradient-to-r from-blue-500 to-purple-500 rounded-full transition-all duration-1000" style={{ width: `${xpProgress}%` }} />
+                  </div>
+                </div>
+              </div>
+
+              {/* Card 2: Streak & Trust */}
+              <div className="w-[85%] shrink-0 snap-center bg-gradient-to-br from-orange-900/40 to-red-900/40 rounded-3xl p-6 border border-white/10 flex flex-col justify-between aspect-[3/2]">
+                <div className="flex justify-between items-start mb-4">
+                  <div>
+                    <p className="text-white/60 text-sm font-bold uppercase tracking-wider mb-1">Okuma Serisi</p>
+                    <h3 className="text-4xl font-black text-white">{profile?.stats?.streak || 0} <span className="text-xl text-white/60 font-medium">Gün</span></h3>
+                  </div>
+                  <div className="bg-orange-500/20 p-3 rounded-2xl text-orange-400">
+                    <Flame size={24} />
+                  </div>
+                </div>
+                <div className="flex items-center gap-3 bg-black/30 p-3 rounded-2xl mt-auto">
+                  <Shield size={20} className="text-emerald-500 shrink-0" />
+                  <div className="flex-1">
+                    <div className="flex justify-between text-xs font-bold mb-1">
+                      <span className="text-white/80">Güven Puanı</span>
+                      <span className="text-emerald-500">%{profile?.stats?.trustScore ?? 100}</span>
+                    </div>
+                    <div className="h-1.5 bg-black/50 rounded-full overflow-hidden">
+                      <div className="h-full bg-emerald-500 rounded-full transition-all duration-1000" style={{ width: `${profile?.stats?.trustScore ?? 100}%` }} />
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              {/* Card 3: Reading & Zikir */}
+              <div className="w-[85%] shrink-0 snap-center bg-gradient-to-br from-emerald-900/40 to-teal-900/40 rounded-3xl p-6 border border-white/10 flex flex-col justify-between aspect-[3/2]">
+                <div className="grid grid-cols-2 gap-4 h-full">
+                  <div className="flex flex-col justify-center">
+                    <BookOpen size={20} className="text-emerald-400 mb-2" />
+                    <p className="text-2xl font-bold text-white mb-1">{profile?.stats?.totalReadPages || 0}</p>
+                    <p className="text-xs text-white/60 font-bold uppercase tracking-wider">Sayfa</p>
+                  </div>
+                  <div className="flex flex-col justify-center">
+                    <RotateCcw size={20} className="text-teal-400 mb-2" />
+                    <p className="text-2xl font-bold text-white mb-1">{profile?.stats?.totalZikir || 0}</p>
+                    <p className="text-xs text-white/60 font-bold uppercase tracking-wider">Zikir</p>
+                  </div>
+                  <div className="col-span-2 bg-black/30 p-3 rounded-2xl flex items-center gap-3 mt-auto">
+                    <Clock size={16} className="text-white/60 shrink-0" />
+                    <span className="text-sm font-bold text-white/80 truncate">{formatReadingTime(profile?.stats?.totalReadingTime)} Toplam Süre</span>
+                  </div>
+                </div>
+              </div>
             </div>
-            <div className="flex items-center gap-2 bg-yellow-500/20 text-yellow-500 px-4 py-2 rounded-full border border-yellow-500/20">
-              <Star size={20} fill="currentColor" />
-              <span className="font-bold">{profile?.stats?.xp || 0} XP</span>
-            </div>
-            <div className="flex items-center gap-2 bg-blue-500/20 text-blue-500 px-4 py-2 rounded-full border border-blue-500/20">
-              <TrendingUp size={20} />
-              <span className="font-bold">{userLevel}. Seviye</span>
-            </div>
-            <div className="flex items-center gap-2 bg-emerald-500/20 text-emerald-500 px-4 py-2 rounded-full border border-emerald-500/20">
-              <Shield size={20} fill="currentColor" />
-              <span className="font-bold">%{profile?.stats?.trustScore ?? 100} Güven</span>
+            
+            {/* Pagination Dots */}
+            <div className="flex justify-center gap-2 mt-2">
+              {[0, 1, 2].map(idx => (
+                <div 
+                  key={idx} 
+                  className={`h-1.5 rounded-full transition-all duration-300 ${activeSlide === idx ? 'w-6 bg-white' : 'w-1.5 bg-white/20'}`}
+                />
+              ))}
             </div>
           </div>
-          
+
           <div className="flex gap-8 mb-8">
             <div className="text-center">
               <p className="text-lg font-bold">{profile?.following?.length || 0}</p>
@@ -414,38 +495,6 @@ export const ProfilePage: React.FC<ProfilePageProps> = ({ username, onBack, play
               )}
             </button>
           )}
-        </div>
-
-        {/* Stats Grid */}
-        <div className="grid grid-cols-2 gap-4 mb-8">
-          <div className="bg-white/5 rounded-3xl p-6 border border-white/10">
-            <div className="flex items-center gap-3 mb-2 text-white/60">
-              <BookOpen size={18} />
-              <span className="text-xs font-bold uppercase tracking-wider">Okunan Sayfa</span>
-            </div>
-            <p className="text-2xl font-bold">{profile?.stats?.totalReadPages || 0}</p>
-          </div>
-          <div className="bg-white/5 rounded-3xl p-6 border border-white/10">
-            <div className="flex items-center gap-3 mb-2 text-white/60">
-              <RotateCcw size={18} />
-              <span className="text-xs font-bold uppercase tracking-wider">Zikir</span>
-            </div>
-            <p className="text-2xl font-bold">{profile?.stats?.totalZikir || 0}</p>
-          </div>
-          <div className="bg-white/5 rounded-3xl p-6 border border-white/10">
-            <div className="flex items-center gap-3 mb-2 text-white/60">
-              <Clock size={18} />
-              <span className="text-xs font-bold uppercase tracking-wider">Okuma Süresi</span>
-            </div>
-            <p className="text-2xl font-bold">{formatReadingTime(profile?.stats?.totalReadingTime)}</p>
-          </div>
-          <div className="bg-white/5 rounded-3xl p-6 border border-white/10">
-            <div className="flex items-center gap-3 mb-2 text-white/60">
-              <Shield size={18} />
-              <span className="text-xs font-bold uppercase tracking-wider">Güven Puanı</span>
-            </div>
-            <p className="text-2xl font-bold">%{profile?.stats?.trustScore ?? 100}</p>
-          </div>
         </div>
 
         {/* Reading Chart */}
