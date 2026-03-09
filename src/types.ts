@@ -48,6 +48,7 @@ export interface UserStats {
   totalReadPages: number;
   streak: number;
   xp: number;
+  level?: number;
   lastReadingDate?: string;
   trustScore?: number;
   totalReadingTime?: number; // in seconds

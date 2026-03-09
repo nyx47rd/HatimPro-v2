@@ -72,7 +72,7 @@ const TUTORIAL_STEPS = [
         <ul className="list-disc pl-5 space-y-2 text-neutral-400">
           <li><strong>Profil:</strong> Kendi profilinizden toplam XP, seviye ve okuma istatistiklerinizi görebilirsiniz.</li>
           <li><strong>Takipleşme:</strong> Diğer kullanıcıları arayıp takip ederek onların ilerlemelerini görebilirsiniz.</li>
-          <li><strong>Liderlik Tablosu:</strong> "Diğer" menüsü altındaki sıralama kısmından haftalık rekabete katılın.</li>
+          <li><strong>Liderlik Tablosu:</strong> "Diğer" menüsü altındaki sıralama kısmından topluluktaki yerinizi görün.</li>
           <li><strong>Seri (Streak):</strong> Her gün okuma yaparak serinizi bozmadan devam ettirin.</li>
         </ul>
       </div>

@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { motion } from 'motion/react';
-import { ChevronLeft, Trophy, Flame, Star, Medal } from 'lucide-react';
+import { ChevronLeft, Trophy, Flame, Star, Medal, TrendingUp } from 'lucide-react';
 import { db } from '../lib/firebase';
 import { collection, query, orderBy, limit, getDocs } from 'firebase/firestore';
 import { UserProfile } from '../types';
@@ -128,6 +128,10 @@ export const LeaderboardPage: React.FC<LeaderboardPageProps> = ({ onBack, playCl
                       <div className="flex items-center gap-1">
                         <Star size={12} className="text-yellow-500" />
                         <span>{leader.stats?.xp || 0} XP</span>
+                      </div>
+                      <div className="flex items-center gap-1">
+                        <TrendingUp size={12} className="text-blue-500" />
+                        <span>{leader.stats?.level || Math.floor(Math.sqrt((leader.stats?.xp || 0) / 50)) + 1}. Seviye</span>
                       </div>
                     </div>
                   </div>

@@ -40,6 +40,7 @@ export const syncDataToFirebase = async (userId: string, data: HatimData) => {
     }
 
     const xp = totalReadPages * 10 + (streak * 5);
+    const level = Math.floor(Math.sqrt(xp / 50)) + 1;
 
     await setDoc(docRef, { 
       data, 
@@ -49,6 +50,7 @@ export const syncDataToFirebase = async (userId: string, data: HatimData) => {
         totalReadPages,
         streak,
         xp,
+        level,
         lastReadingDate: uniqueDates[0] || null
       }
     }, { merge: true });

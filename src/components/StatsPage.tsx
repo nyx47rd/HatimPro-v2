@@ -195,6 +195,20 @@ export const StatsPage: React.FC<StatsPageProps> = ({ data, onBack, playClick })
             <p className="text-3xl font-bold">%{profile?.stats?.trustScore ?? 100}</p>
             <p className="text-xs text-white/40 mt-1">Okuma kalitesi</p>
           </motion.div>
+
+          <motion.div 
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.6 }}
+            className="bg-white/5 rounded-3xl p-6 border border-white/10"
+          >
+            <div className="flex items-center gap-3 mb-4 text-blue-500">
+              <TrendingUp size={20} />
+              <span className="text-xs font-bold uppercase tracking-wider">Seviye</span>
+            </div>
+            <p className="text-3xl font-bold">{profile?.stats?.level || Math.floor(Math.sqrt((profile?.stats?.xp || 0) / 50)) + 1}</p>
+            <p className="text-xs text-white/40 mt-1">Mevcut seviyeniz</p>
+          </motion.div>
         </div>
 
         {/* Weekly Distribution */}

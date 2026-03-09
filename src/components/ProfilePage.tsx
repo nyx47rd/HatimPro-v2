@@ -312,6 +312,12 @@ export const ProfilePage: React.FC<ProfilePageProps> = ({ username, onBack, play
     );
   }
 
+  const userLevel = React.useMemo(() => {
+    if (profile?.stats?.level) return profile.stats.level;
+    if (profile?.stats?.xp) return Math.floor(Math.sqrt(profile.stats.xp / 50)) + 1;
+    return 1;
+  }, [profile]);
+
   const isOwnProfile = user?.uid === profile?.uid;
   const isFollowing = currentUserProfile?.following?.includes(profile?.uid);
 
@@ -364,6 +370,10 @@ export const ProfilePage: React.FC<ProfilePageProps> = ({ username, onBack, play
             <div className="flex items-center gap-2 bg-yellow-500/20 text-yellow-500 px-4 py-2 rounded-full border border-yellow-500/20">
               <Star size={20} fill="currentColor" />
               <span className="font-bold">{profile?.stats?.xp || 0} XP</span>
+            </div>
+            <div className="flex items-center gap-2 bg-blue-500/20 text-blue-500 px-4 py-2 rounded-full border border-blue-500/20">
+              <TrendingUp size={20} />
+              <span className="font-bold">{userLevel}. Seviye</span>
             </div>
             <div className="flex items-center gap-2 bg-emerald-500/20 text-emerald-500 px-4 py-2 rounded-full border border-emerald-500/20">
               <Shield size={20} fill="currentColor" />
