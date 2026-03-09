@@ -314,7 +314,11 @@ export const QuranReader: React.FC<QuranReaderProps> = ({ onClose, playClick }) 
                   <div className="w-8 h-8 shrink-0 rounded-full bg-sage-200 dark:bg-neutral-800 flex items-center justify-center text-xs font-bold text-sage-600 dark:text-neutral-400">
                     {ayah.numberInSurah}
                   </div>
-                  <p className="text-2xl leading-loose font-arabic text-right text-sage-800 dark:text-white flex-1" dir="rtl">
+                  <p 
+                    className="text-2xl font-arabic text-right text-sage-800 dark:text-white flex-1" 
+                    style={{ lineHeight: '2.8', wordSpacing: '0.1em' }}
+                    dir="rtl"
+                  >
                     {ayah.text}
                   </p>
                 </div>
@@ -390,7 +394,7 @@ export const QuranReader: React.FC<QuranReaderProps> = ({ onClose, playClick }) 
                 >
                   <p 
                     className="text-4xl md:text-5xl lg:text-6xl font-arabic text-white text-glow pb-8" 
-                    style={{ lineHeight: '2.5' }}
+                    style={{ lineHeight: '3.5', wordSpacing: '0.15em' }}
                     dir="rtl"
                   >
                     {surahData?.ayahs[currentAyahIndex]?.text}
