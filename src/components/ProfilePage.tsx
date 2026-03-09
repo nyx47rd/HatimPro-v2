@@ -15,7 +15,8 @@ import {
   Clock,
   BookOpen,
   RotateCcw,
-  Flame
+  Flame,
+  Shield
 } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
 import { db } from '../lib/firebase';
@@ -282,6 +283,17 @@ export const ProfilePage: React.FC<ProfilePageProps> = ({ username, onBack, play
     }
   };
 
+  const formatReadingTime = (seconds: number = 0) => {
+    if (seconds === 0) return '0 dk';
+    const hours = Math.floor(seconds / 3600);
+    const minutes = Math.floor((seconds % 3600) / 60);
+    
+    if (hours > 0) {
+      return `${hours} sa ${minutes} dk`;
+    }
+    return `${minutes} dk`;
+  };
+
   if (loading) {
     return (
       <div className="min-h-screen bg-black flex items-center justify-center">
@@ -353,6 +365,10 @@ export const ProfilePage: React.FC<ProfilePageProps> = ({ username, onBack, play
               <Star size={20} fill="currentColor" />
               <span className="font-bold">{profile?.stats?.xp || 0} XP</span>
             </div>
+            <div className="flex items-center gap-2 bg-emerald-500/20 text-emerald-500 px-4 py-2 rounded-full border border-emerald-500/20">
+              <Shield size={20} fill="currentColor" />
+              <span className="font-bold">%{profile?.stats?.trustScore ?? 100} Güven</span>
+            </div>
           </div>
           
           <div className="flex gap-8 mb-8">
@@ -405,6 +421,20 @@ export const ProfilePage: React.FC<ProfilePageProps> = ({ username, onBack, play
               <span className="text-xs font-bold uppercase tracking-wider">Zikir</span>
             </div>
             <p className="text-2xl font-bold">{profile?.stats?.totalZikir || 0}</p>
+          </div>
+          <div className="bg-white/5 rounded-3xl p-6 border border-white/10">
+            <div className="flex items-center gap-3 mb-2 text-white/60">
+              <Clock size={18} />
+              <span className="text-xs font-bold uppercase tracking-wider">Okuma Süresi</span>
+            </div>
+            <p className="text-2xl font-bold">{formatReadingTime(profile?.stats?.totalReadingTime)}</p>
+          </div>
+          <div className="bg-white/5 rounded-3xl p-6 border border-white/10">
+            <div className="flex items-center gap-3 mb-2 text-white/60">
+              <Shield size={18} />
+              <span className="text-xs font-bold uppercase tracking-wider">Güven Puanı</span>
+            </div>
+            <p className="text-2xl font-bold">%{profile?.stats?.trustScore ?? 100}</p>
           </div>
         </div>
 

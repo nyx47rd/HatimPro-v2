@@ -10,7 +10,8 @@ import {
   Zap,
   BarChart2,
   PieChart as PieChartIcon,
-  Activity
+  Activity,
+  Shield
 } from 'lucide-react';
 import { 
   BarChart, 
@@ -27,6 +28,7 @@ import {
   Area
 } from 'recharts';
 import { HatimData } from '../types';
+import { useAuth } from '../contexts/AuthContext';
 
 interface StatsPageProps {
   data: HatimData;
@@ -35,6 +37,19 @@ interface StatsPageProps {
 }
 
 export const StatsPage: React.FC<StatsPageProps> = ({ data, onBack, playClick }) => {
+  const { profile } = useAuth();
+  
+  const formatReadingTime = (seconds: number = 0) => {
+    if (seconds === 0) return '0 dk';
+    const hours = Math.floor(seconds / 3600);
+    const minutes = Math.floor((seconds % 3600) / 60);
+    
+    if (hours > 0) {
+      return `${hours} sa ${minutes} dk`;
+    }
+    return `${minutes} dk`;
+  };
+
   const stats = useMemo(() => {
     const logs = data.logs || [];
     const totalPages = logs.reduce((sum, log) => sum + log.pagesRead, 0);
@@ -151,6 +166,34 @@ export const StatsPage: React.FC<StatsPageProps> = ({ data, onBack, playClick })
             </div>
             <p className="text-3xl font-bold">{stats.avgPagesPerSession}</p>
             <p className="text-xs text-white/40 mt-1">Sayfa / Oturum</p>
+          </motion.div>
+
+          <motion.div 
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.4 }}
+            className="bg-white/5 rounded-3xl p-6 border border-white/10"
+          >
+            <div className="flex items-center gap-3 mb-4 text-emerald-500">
+              <Clock size={20} />
+              <span className="text-xs font-bold uppercase tracking-wider">Okuma Süresi</span>
+            </div>
+            <p className="text-2xl font-bold">{formatReadingTime(profile?.stats?.totalReadingTime)}</p>
+            <p className="text-xs text-white/40 mt-1">Toplam süre</p>
+          </motion.div>
+
+          <motion.div 
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.5 }}
+            className="bg-white/5 rounded-3xl p-6 border border-white/10"
+          >
+            <div className="flex items-center gap-3 mb-4 text-orange-500">
+              <Shield size={20} />
+              <span className="text-xs font-bold uppercase tracking-wider">Güven Puanı</span>
+            </div>
+            <p className="text-3xl font-bold">%{profile?.stats?.trustScore ?? 100}</p>
+            <p className="text-xs text-white/40 mt-1">Okuma kalitesi</p>
           </motion.div>
         </div>
 
