@@ -199,8 +199,14 @@ export const QuranReader: React.FC<QuranReaderProps> = ({ onClose, playClick }) 
     const setupAudio = async () => {
       if (!currentAudioRef.current) return;
 
-      currentAudioRef.current.playbackRate = playbackRate;
-      if (nextAudioRef.current) nextAudioRef.current.playbackRate = playbackRate;
+      const applyRate = (audio: HTMLAudioElement) => {
+        audio.playbackRate = playbackRate;
+        audio.defaultPlaybackRate = playbackRate;
+        audio.preservesPitch = true;
+      };
+
+      applyRate(currentAudioRef.current);
+      if (nextAudioRef.current) applyRate(nextAudioRef.current);
 
       const targetSrc = getSafeUrl(currentAyah.audio);
       const currentSrc = currentAudioRef.current.src;
@@ -216,6 +222,7 @@ export const QuranReader: React.FC<QuranReaderProps> = ({ onClose, playClick }) 
           nextAudioRef.current = temp;
         } else {
           currentAudioRef.current.src = currentAyah.audio;
+          applyRate(currentAudioRef.current);
           currentAudioRef.current.load();
         }
       }
@@ -228,6 +235,9 @@ export const QuranReader: React.FC<QuranReaderProps> = ({ onClose, playClick }) 
             const temp = currentAudioRef.current;
             currentAudioRef.current = nextAudioRef.current;
             nextAudioRef.current = temp;
+            
+            // CRITICAL: Re-apply rate right before playing to prevent 1x stutter
+            applyRate(currentAudioRef.current);
             currentAudioRef.current.play().catch(console.error);
           }
           setCurrentAyahIndex(prev => prev + 1);
@@ -278,8 +288,14 @@ export const QuranReader: React.FC<QuranReaderProps> = ({ onClose, playClick }) 
       const nextTargetSrc = getSafeUrl(nextAyah.audio);
       if (nextAudioRef.current.src !== nextTargetSrc) {
         nextAudioRef.current.src = nextAyah.audio;
+        nextAudioRef.current.playbackRate = playbackRate;
+        nextAudioRef.current.defaultPlaybackRate = playbackRate;
+        nextAudioRef.current.preservesPitch = true;
         nextAudioRef.current.preload = 'auto';
         nextAudioRef.current.load();
+      } else {
+        nextAudioRef.current.playbackRate = playbackRate;
+        nextAudioRef.current.defaultPlaybackRate = playbackRate;
       }
     }
 
