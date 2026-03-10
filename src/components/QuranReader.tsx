@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { Play, Pause, ChevronLeft, Search, Maximize, Minimize } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 
@@ -20,6 +20,58 @@ interface QuranReaderProps {
   onClose: () => void;
   playClick: () => void;
 }
+
+const AyahRow = React.memo(({ 
+  ayah, 
+  idx, 
+  isActive, 
+  onClick, 
+  setRef 
+}: { 
+  ayah: Ayah; 
+  idx: number; 
+  isActive: boolean; 
+  onClick: (idx: number) => void; 
+  setRef: (idx: number, el: HTMLDivElement | null) => void; 
+}) => {
+  return (
+    <div 
+      ref={(el) => setRef(idx, el)}
+      onClick={() => onClick(idx)}
+      className={`relative p-8 rounded-3xl transition-all duration-500 cursor-pointer border ${
+        isActive 
+          ? 'bg-gradient-to-br from-sage-50 to-emerald-50/30 dark:from-neutral-800 dark:to-emerald-900/20 border-emerald-500/50 dark:border-emerald-500/30 shadow-[0_8px_30px_rgb(0,0,0,0.04)] dark:shadow-[0_8px_30px_rgb(0,0,0,0.2)] scale-[1.02] z-10' 
+          : 'bg-white dark:bg-neutral-900/50 border-sage-100 dark:border-neutral-800 hover:border-sage-300 dark:hover:border-neutral-700 hover:shadow-md'
+      }`}
+    >
+      {/* Active Indicator Glow */}
+      {isActive && (
+        <div className="absolute inset-0 rounded-3xl ring-1 ring-emerald-500/20 dark:ring-emerald-400/20 shadow-[inset_0_0_20px_rgba(16,185,129,0.05)] pointer-events-none"></div>
+      )}
+      
+      <div className="relative flex justify-between items-start gap-6">
+        <div className={`w-10 h-10 shrink-0 rounded-full flex items-center justify-center text-sm font-bold transition-colors ${
+          isActive
+            ? 'bg-emerald-100 dark:bg-emerald-900/50 text-emerald-700 dark:text-emerald-300'
+            : 'bg-sage-100 dark:bg-neutral-800 text-sage-500 dark:text-neutral-500'
+        }`}>
+          {ayah.numberInSurah}
+        </div>
+        <p 
+          className={`text-2xl md:text-3xl font-arabic text-right flex-1 transition-colors ${
+            isActive
+              ? 'text-emerald-950 dark:text-emerald-50'
+              : 'text-sage-800 dark:text-neutral-300'
+          }`} 
+          style={{ lineHeight: '2.8', wordSpacing: '0.1em' }}
+          dir="rtl"
+        >
+          {ayah.text}
+        </p>
+      </div>
+    </div>
+  );
+});
 
 const SURAH_NAMES_TR = [
   "Fâtiha", "Bakara", "Âl-i İmrân", "Nisâ", "Mâide", "En'âm", "A'râf", "Enfâl", "Tevbe", "Yûnus",
@@ -52,6 +104,16 @@ export const QuranReader: React.FC<QuranReaderProps> = ({ onClose, playClick }) 
   const nextAudioRef = useRef<HTMLAudioElement | null>(null);
   const ayahRefs = useRef<(HTMLDivElement | null)[]>([]);
   const fullscreenScrollRef = useRef<HTMLDivElement>(null);
+
+  const handleAyahClick = useCallback((idx: number) => {
+    playClick();
+    setCurrentAyahIndex(idx);
+    setIsPlaying(true);
+  }, [playClick]);
+
+  const setAyahRef = useCallback((idx: number, el: HTMLDivElement | null) => {
+    ayahRefs.current[idx] = el;
+  }, []);
 
   // Initialize audio elements
   useEffect(() => {
@@ -116,13 +178,21 @@ export const QuranReader: React.FC<QuranReaderProps> = ({ onClose, playClick }) 
 
     let animationFrameId: number;
 
+    const getSafeUrl = (url: string) => {
+      try { return new URL(url, document.baseURI).href; } catch(e) { return url; }
+    };
+
     const setupAudio = async () => {
       if (!currentAudioRef.current) return;
 
+      const targetSrc = getSafeUrl(currentAyah.audio);
+      const currentSrc = currentAudioRef.current.src;
+
       // If the current audio is not the one we want to play
-      if (currentAudioRef.current.src !== currentAyah.audio) {
+      if (currentSrc !== targetSrc) {
+        const nextSrc = nextAudioRef.current ? nextAudioRef.current.src : '';
         // Check if nextAudioRef has it preloaded
-        if (nextAudioRef.current && nextAudioRef.current.src === currentAyah.audio) {
+        if (nextAudioRef.current && nextSrc === targetSrc) {
           // Swap references for gapless playback
           const temp = currentAudioRef.current;
           currentAudioRef.current = nextAudioRef.current;
@@ -135,8 +205,9 @@ export const QuranReader: React.FC<QuranReaderProps> = ({ onClose, playClick }) 
 
       currentAudioRef.current.onended = () => {
         if (currentAyahIndex < surahData.ayahs.length - 1) {
+          const nextAyahUrl = getSafeUrl(surahData.ayahs[currentAyahIndex + 1].audio);
           // Play next immediately for gapless transition
-          if (nextAudioRef.current && nextAudioRef.current.src === nextAyah?.audio) {
+          if (nextAudioRef.current && nextAudioRef.current.src === nextAyahUrl) {
             const temp = currentAudioRef.current;
             currentAudioRef.current = nextAudioRef.current;
             nextAudioRef.current = temp;
@@ -169,7 +240,7 @@ export const QuranReader: React.FC<QuranReaderProps> = ({ onClose, playClick }) 
     const updateScroll = () => {
       if (currentAudioRef.current && fullscreenScrollRef.current && isPlaying) {
         const { currentTime, duration } = currentAudioRef.current;
-        if (duration > 0) {
+        if (duration > 0 && !isNaN(duration) && isFinite(duration)) {
           const progress = currentTime / duration;
           const container = fullscreenScrollRef.current;
           const scrollableHeight = container.scrollHeight - container.clientHeight;
@@ -187,7 +258,8 @@ export const QuranReader: React.FC<QuranReaderProps> = ({ onClose, playClick }) 
 
     // Preload next ayah in background thread
     if (nextAyah && nextAudioRef.current) {
-      if (nextAudioRef.current.src !== nextAyah.audio) {
+      const nextTargetSrc = getSafeUrl(nextAyah.audio);
+      if (nextAudioRef.current.src !== nextTargetSrc) {
         nextAudioRef.current.src = nextAyah.audio;
         nextAudioRef.current.preload = 'auto';
         nextAudioRef.current.load();
@@ -334,46 +406,14 @@ export const QuranReader: React.FC<QuranReaderProps> = ({ onClose, playClick }) 
             </div>
             
             {surahData?.ayahs.map((ayah, idx) => (
-              <div 
+              <AyahRow
                 key={ayah.number}
-                ref={el => { ayahRefs.current[idx] = el; }}
-                onClick={() => {
-                  playClick();
-                  setCurrentAyahIndex(idx);
-                  setIsPlaying(true);
-                }}
-                className={`relative p-8 rounded-3xl transition-all duration-500 cursor-pointer border ${
-                  idx === currentAyahIndex 
-                    ? 'bg-gradient-to-br from-sage-50 to-emerald-50/30 dark:from-neutral-800 dark:to-emerald-900/20 border-emerald-500/50 dark:border-emerald-500/30 shadow-[0_8px_30px_rgb(0,0,0,0.04)] dark:shadow-[0_8px_30px_rgb(0,0,0,0.2)] scale-[1.02] z-10' 
-                    : 'bg-white dark:bg-neutral-900/50 border-sage-100 dark:border-neutral-800 hover:border-sage-300 dark:hover:border-neutral-700 hover:shadow-md'
-                }`}
-              >
-                {/* Active Indicator Glow */}
-                {idx === currentAyahIndex && (
-                  <div className="absolute inset-0 rounded-3xl ring-1 ring-emerald-500/20 dark:ring-emerald-400/20 shadow-[inset_0_0_20px_rgba(16,185,129,0.05)] pointer-events-none"></div>
-                )}
-                
-                <div className="relative flex justify-between items-start gap-6">
-                  <div className={`w-10 h-10 shrink-0 rounded-full flex items-center justify-center text-sm font-bold transition-colors ${
-                    idx === currentAyahIndex
-                      ? 'bg-emerald-100 dark:bg-emerald-900/50 text-emerald-700 dark:text-emerald-300'
-                      : 'bg-sage-100 dark:bg-neutral-800 text-sage-500 dark:text-neutral-500'
-                  }`}>
-                    {ayah.numberInSurah}
-                  </div>
-                  <p 
-                    className={`text-2xl md:text-3xl font-arabic text-right flex-1 transition-colors ${
-                      idx === currentAyahIndex
-                        ? 'text-emerald-950 dark:text-emerald-50'
-                        : 'text-sage-800 dark:text-neutral-300'
-                    }`} 
-                    style={{ lineHeight: '2.8', wordSpacing: '0.1em' }}
-                    dir="rtl"
-                  >
-                    {ayah.text}
-                  </p>
-                </div>
-              </div>
+                ayah={ayah}
+                idx={idx}
+                isActive={idx === currentAyahIndex}
+                onClick={handleAyahClick}
+                setRef={setAyahRef}
+              />
             ))}
           </div>
         )}
