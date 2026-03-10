@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react';
-import { Play, Pause, ChevronLeft, Search, Maximize, Minimize } from 'lucide-react';
+import { Play, Pause, ChevronLeft, Search, Maximize, Minimize, ChevronRight, FastForward } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 
 interface Ayah {
@@ -40,28 +40,28 @@ const AyahRow = React.memo(({
       onClick={() => onClick(idx)}
       className={`relative p-8 rounded-3xl transition-all duration-500 cursor-pointer border ${
         isActive 
-          ? 'bg-gradient-to-br from-sage-50 to-emerald-50/30 dark:from-neutral-800 dark:to-emerald-900/20 border-emerald-500/50 dark:border-emerald-500/30 shadow-[0_8px_30px_rgb(0,0,0,0.04)] dark:shadow-[0_8px_30px_rgb(0,0,0,0.2)] scale-[1.02] z-10' 
-          : 'bg-white dark:bg-neutral-900/50 border-sage-100 dark:border-neutral-800 hover:border-sage-300 dark:hover:border-neutral-700 hover:shadow-md'
+          ? 'bg-white/10 dark:bg-white/10 border-emerald-500/50 shadow-[0_8px_30px_rgba(16,185,129,0.2)] scale-[1.02] z-10 backdrop-blur-md' 
+          : 'bg-white/5 dark:bg-white/5 border-white/5 hover:border-white/20 hover:bg-white/10 backdrop-blur-sm'
       }`}
     >
       {/* Active Indicator Glow */}
       {isActive && (
-        <div className="absolute inset-0 rounded-3xl ring-1 ring-emerald-500/20 dark:ring-emerald-400/20 shadow-[inset_0_0_20px_rgba(16,185,129,0.05)] pointer-events-none"></div>
+        <div className="absolute inset-0 rounded-3xl ring-1 ring-emerald-500/30 shadow-[inset_0_0_20px_rgba(16,185,129,0.1)] pointer-events-none"></div>
       )}
       
       <div className="relative flex justify-between items-start gap-6">
         <div className={`w-10 h-10 shrink-0 rounded-full flex items-center justify-center text-sm font-bold transition-colors ${
           isActive
-            ? 'bg-emerald-100 dark:bg-emerald-900/50 text-emerald-700 dark:text-emerald-300'
-            : 'bg-sage-100 dark:bg-neutral-800 text-sage-500 dark:text-neutral-500'
+            ? 'bg-emerald-500/20 text-emerald-300 border border-emerald-500/30'
+            : 'bg-white/5 text-white/50 border border-white/10'
         }`}>
           {ayah.numberInSurah}
         </div>
         <p 
           className={`text-2xl md:text-3xl font-arabic text-right flex-1 transition-colors ${
             isActive
-              ? 'text-emerald-950 dark:text-emerald-50'
-              : 'text-sage-800 dark:text-neutral-300'
+              ? 'text-white drop-shadow-[0_0_15px_rgba(255,255,255,0.3)]'
+              : 'text-white/70'
           }`} 
           style={{ lineHeight: '2.8', wordSpacing: '0.1em' }}
           dir="rtl"
@@ -99,11 +99,13 @@ export const QuranReader: React.FC<QuranReaderProps> = ({ onClose, playClick }) 
   const [searchQuery, setSearchQuery] = useState('');
   const [targetAyah, setTargetAyah] = useState<number | null>(null);
   const [isFullscreen, setIsFullscreen] = useState(false);
+  const [playbackRate, setPlaybackRate] = useState(1);
   
   const currentAudioRef = useRef<HTMLAudioElement | null>(null);
   const nextAudioRef = useRef<HTMLAudioElement | null>(null);
   const ayahRefs = useRef<(HTMLDivElement | null)[]>([]);
   const fullscreenScrollRef = useRef<HTMLDivElement>(null);
+  const surahCache = useRef<Record<number, Surah>>({});
 
   const handleAyahClick = useCallback((idx: number) => {
     playClick();
@@ -149,19 +151,31 @@ export const QuranReader: React.FC<QuranReaderProps> = ({ onClose, playClick }) 
     if (currentAudioRef.current) {
       currentAudioRef.current.pause();
     }
+
+    const handleSurahData = (data: Surah) => {
+      setSurahData(data);
+      if (targetAyah !== null && data.ayahs) {
+        const index = data.ayahs.findIndex((a: Ayah) => a.numberInSurah === targetAyah);
+        setCurrentAyahIndex(index !== -1 ? index : 0);
+        setTargetAyah(null);
+      } else {
+        setCurrentAyahIndex(0);
+      }
+      setLoading(false);
+    };
+
+    // Use memory cache for instant loading
+    if (surahCache.current[selectedSurah]) {
+      handleSurahData(surahCache.current[selectedSurah]);
+      return;
+    }
+
     // Using Alafasy for crystal clear recitation
     fetch(`https://api.alquran.cloud/v1/surah/${selectedSurah}/ar.alafasy`)
       .then(res => res.json())
       .then(data => {
-        setSurahData(data.data);
-        if (targetAyah !== null && data.data.ayahs) {
-          const index = data.data.ayahs.findIndex((a: Ayah) => a.numberInSurah === targetAyah);
-          setCurrentAyahIndex(index !== -1 ? index : 0);
-          setTargetAyah(null);
-        } else {
-          setCurrentAyahIndex(0);
-        }
-        setLoading(false);
+        surahCache.current[selectedSurah] = data.data;
+        handleSurahData(data.data);
       })
       .catch(err => {
         console.error(err);
@@ -184,6 +198,9 @@ export const QuranReader: React.FC<QuranReaderProps> = ({ onClose, playClick }) 
 
     const setupAudio = async () => {
       if (!currentAudioRef.current) return;
+
+      currentAudioRef.current.playbackRate = playbackRate;
+      if (nextAudioRef.current) nextAudioRef.current.playbackRate = playbackRate;
 
       const targetSrc = getSafeUrl(currentAyah.audio);
       const currentSrc = currentAudioRef.current.src;
@@ -274,7 +291,55 @@ export const QuranReader: React.FC<QuranReaderProps> = ({ onClose, playClick }) 
         cancelAnimationFrame(animationFrameId);
       }
     };
-  }, [currentAyahIndex, isPlaying, surahData]);
+  }, [currentAyahIndex, isPlaying, surahData, playbackRate]);
+
+  // Media Session API for background playback and notifications
+  useEffect(() => {
+    if ('mediaSession' in navigator && surahData) {
+      const trName = SURAH_NAMES_TR[surahData.number - 1] || surahData.name;
+      
+      navigator.mediaSession.metadata = new MediaMetadata({
+        title: `${trName} - Ayet ${currentAyahIndex + 1}`,
+        artist: 'Mişari Raşid el-Afasi',
+        album: 'Hatim Pro',
+        artwork: [
+          { src: 'https://cdn-icons-png.flaticon.com/512/3073/3073995.png', sizes: '512x512', type: 'image/png' }
+        ]
+      });
+
+      navigator.mediaSession.setActionHandler('play', () => setIsPlaying(true));
+      navigator.mediaSession.setActionHandler('pause', () => setIsPlaying(false));
+      navigator.mediaSession.setActionHandler('previoustrack', () => {
+        if (currentAyahIndex > 0) setCurrentAyahIndex(prev => prev - 1);
+      });
+      navigator.mediaSession.setActionHandler('nexttrack', () => {
+        if (currentAyahIndex < surahData.ayahs.length - 1) setCurrentAyahIndex(prev => prev + 1);
+      });
+    }
+  }, [currentAyahIndex, surahData]);
+
+  // Keyboard navigation for fullscreen
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (!isFullscreen) return;
+      if (e.key === 'ArrowRight' || e.key === 'ArrowDown') {
+        if (surahData && currentAyahIndex < surahData.ayahs.length - 1) {
+          setCurrentAyahIndex(prev => prev + 1);
+        }
+      }
+      if (e.key === 'ArrowLeft' || e.key === 'ArrowUp') {
+        if (currentAyahIndex > 0) {
+          setCurrentAyahIndex(prev => prev - 1);
+        }
+      }
+      if (e.key === ' ') {
+        e.preventDefault();
+        togglePlay();
+      }
+    };
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [isFullscreen, currentAyahIndex, surahData]);
 
   // Auto-scroll
   useEffect(() => {
@@ -350,59 +415,72 @@ export const QuranReader: React.FC<QuranReaderProps> = ({ onClose, playClick }) 
     }
   };
 
+  const cyclePlaybackRate = () => {
+    const rates = [0.75, 1, 1.25, 1.5, 2];
+    const nextIdx = (rates.indexOf(playbackRate) + 1) % rates.length;
+    setPlaybackRate(rates[nextIdx]);
+  };
+
   return (
     <motion.div 
       initial={{ opacity: 0, y: '100%' }}
       animate={{ opacity: 1, y: 0 }}
       exit={{ opacity: 0, y: '100%' }}
       transition={{ type: 'spring', damping: 25, stiffness: 200 }}
-      className="fixed inset-0 z-50 bg-sage-50 dark:bg-black flex flex-col"
+      className="fixed inset-0 z-50 bg-[#0a0f16] text-white flex flex-col overflow-hidden"
     >
+      {/* Liquid Glass Background Orbs */}
+      <div className="absolute inset-0 overflow-hidden pointer-events-none">
+        <div className="absolute top-[-20%] left-[-10%] w-[70%] h-[70%] rounded-full bg-emerald-900/20 blur-[120px] animate-pulse" style={{ animationDuration: '8s' }} />
+        <div className="absolute bottom-[-20%] right-[-10%] w-[60%] h-[60%] rounded-full bg-teal-900/20 blur-[100px] animate-pulse" style={{ animationDuration: '12s' }} />
+        <div className="absolute top-[40%] left-[40%] w-[30%] h-[30%] rounded-full bg-amber-900/5 blur-[80px] animate-pulse" style={{ animationDuration: '10s' }} />
+      </div>
+
       {/* Header */}
-      <div className="bg-white dark:bg-neutral-900 border-b border-sage-200 dark:border-neutral-800 px-4 py-3 flex flex-col gap-3 shadow-sm z-10">
+      <div className="relative z-10 bg-white/5 backdrop-blur-xl border-b border-white/10 px-4 py-3 flex flex-col gap-3 shadow-sm">
         <div className="flex items-center justify-between">
-          <button onClick={() => { playClick(); onClose(); }} className="p-2 hover:bg-sage-100 dark:hover:bg-neutral-800 rounded-full">
-            <ChevronLeft size={24} className="text-sage-800 dark:text-white" />
+          <button onClick={() => { playClick(); onClose(); }} className="p-2 hover:bg-white/10 rounded-full transition-colors">
+            <ChevronLeft size={24} className="text-white" />
           </button>
           
           <select 
             value={selectedSurah}
             onChange={(e) => setSelectedSurah(Number(e.target.value))}
-            className="bg-sage-100 dark:bg-neutral-800 text-sage-800 dark:text-white px-4 py-2 rounded-xl font-bold text-center appearance-none outline-none max-w-[200px] truncate"
+            className="bg-white/10 text-white px-4 py-2 rounded-xl font-bold text-center appearance-none outline-none max-w-[200px] truncate border border-white/10 backdrop-blur-md"
           >
             {surahs.map(s => (
-              <option key={s.number} value={s.number}>{s.number}. {SURAH_NAMES_TR[s.number - 1] || s.name}</option>
+              <option key={s.number} value={s.number} className="bg-neutral-900 text-white">{s.number}. {SURAH_NAMES_TR[s.number - 1] || s.name}</option>
             ))}
           </select>
 
-          <button onClick={() => { playClick(); setIsFullscreen(true); }} className="p-2 hover:bg-sage-100 dark:hover:bg-neutral-800 rounded-full">
-            <Maximize size={24} className="text-sage-800 dark:text-white" />
+          <button onClick={() => { playClick(); setIsFullscreen(true); }} className="p-2 hover:bg-white/10 rounded-full transition-colors">
+            <Maximize size={24} className="text-white" />
           </button>
         </div>
         
         <form onSubmit={handleSearch} className="relative">
-          <Search size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-sage-400 dark:text-neutral-500" />
+          <Search size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-white/50" />
           <input 
             type="text" 
             placeholder="Sure ara (örn: Yasin, 2:255, 36)"
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
-            className="w-full bg-sage-100 dark:bg-neutral-800 text-sage-800 dark:text-white pl-9 pr-4 py-2 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-sage-500"
+            className="w-full bg-white/5 border border-white/10 text-white placeholder-white/40 pl-9 pr-4 py-2 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500/50 backdrop-blur-md"
           />
         </form>
       </div>
 
       {/* Content */}
-      <div className="flex-1 overflow-y-auto p-6 pb-40 scrollbar-hide">
+      <div className="relative z-10 flex-1 overflow-y-auto p-6 pb-40 scrollbar-hide">
         {loading ? (
           <div className="flex justify-center py-12">
-            <div className="w-8 h-8 border-4 border-sage-200 border-t-sage-600 rounded-full animate-spin" />
+            <div className="w-8 h-8 border-4 border-white/20 border-t-emerald-500 rounded-full animate-spin" />
           </div>
         ) : (
           <div className="max-w-3xl mx-auto space-y-6">
             <div className="text-center mb-12">
-              <h1 className="text-5xl font-arabic text-sage-800 dark:text-white mb-4">{surahData?.name}</h1>
-              <p className="text-sage-500 dark:text-neutral-400 tracking-widest uppercase text-sm font-semibold">{surahData ? SURAH_NAMES_TR[surahData.number - 1] : ''}</p>
+              <h1 className="text-5xl font-arabic text-white mb-4 drop-shadow-lg">{surahData?.name}</h1>
+              <p className="text-white/60 tracking-widest uppercase text-sm font-semibold">{surahData ? SURAH_NAMES_TR[surahData.number - 1] : ''}</p>
             </div>
             
             {surahData?.ayahs.map((ayah, idx) => (
@@ -421,27 +499,49 @@ export const QuranReader: React.FC<QuranReaderProps> = ({ onClose, playClick }) 
 
       {/* Floating Player Controls */}
       <div className="absolute bottom-8 left-1/2 -translate-x-1/2 w-[90%] max-w-md z-40">
-        <div className="bg-white/90 dark:bg-neutral-900/90 backdrop-blur-xl border border-sage-200/50 dark:border-neutral-800/50 p-4 rounded-3xl shadow-[0_20px_40px_rgba(0,0,0,0.1)] dark:shadow-[0_20px_40px_rgba(0,0,0,0.4)] flex items-center justify-between gap-4">
+        <div className="bg-white/10 backdrop-blur-xl border border-white/20 p-4 rounded-3xl shadow-[0_20px_40px_rgba(0,0,0,0.3)] flex items-center justify-between gap-4">
           <div className="flex-1 min-w-0">
-            <p className="text-sm font-bold text-sage-800 dark:text-white truncate">
+            <p className="text-sm font-bold text-white truncate">
               {surahData ? SURAH_NAMES_TR[surahData.number - 1] : ''}
             </p>
-            <p className="text-xs text-sage-500 dark:text-neutral-400">
+            <p className="text-xs text-white/60">
               Ayet {currentAyahIndex + 1} / {surahData?.ayahs.length || 0}
             </p>
           </div>
           
-          <button 
-            onClick={togglePlay}
-            className="w-14 h-14 rounded-full bg-emerald-600 text-white flex items-center justify-center shadow-lg hover:bg-emerald-500 transition-colors shrink-0"
-          >
-            {isPlaying ? <Pause size={24} /> : <Play size={24} className="ml-1" />}
-          </button>
+          <div className="flex items-center gap-2">
+            <button 
+              onClick={() => {
+                if (currentAyahIndex > 0) setCurrentAyahIndex(prev => prev - 1);
+              }}
+              className="w-10 h-10 rounded-full hover:bg-white/10 flex items-center justify-center text-white transition-colors"
+            >
+              <ChevronLeft size={20} />
+            </button>
+            <button 
+              onClick={togglePlay}
+              className="w-14 h-14 rounded-full bg-emerald-500 text-white flex items-center justify-center shadow-[0_0_20px_rgba(16,185,129,0.4)] hover:bg-emerald-400 transition-colors shrink-0"
+            >
+              {isPlaying ? <Pause size={24} /> : <Play size={24} className="ml-1" />}
+            </button>
+            <button 
+              onClick={() => {
+                if (surahData && currentAyahIndex < surahData.ayahs.length - 1) setCurrentAyahIndex(prev => prev + 1);
+              }}
+              className="w-10 h-10 rounded-full hover:bg-white/10 flex items-center justify-center text-white transition-colors"
+            >
+              <ChevronRight size={20} />
+            </button>
+          </div>
           
           <div className="flex-1 flex justify-end min-w-0">
-            <div className="bg-sage-100 dark:bg-neutral-800 px-3 py-1.5 rounded-lg text-xs font-bold text-sage-600 dark:text-neutral-400 truncate">
-              Kâri Modu
-            </div>
+            <button 
+              onClick={cyclePlaybackRate}
+              className="bg-white/10 hover:bg-white/20 px-3 py-1.5 rounded-lg text-xs font-bold text-white transition-colors flex items-center gap-1"
+            >
+              <FastForward size={14} />
+              {playbackRate}x
+            </button>
           </div>
         </div>
       </div>
@@ -505,7 +605,7 @@ export const QuranReader: React.FC<QuranReaderProps> = ({ onClose, playClick }) 
             </div>
 
             {/* Bottom Controls */}
-            <div className="relative z-10 p-8 flex flex-col items-center gap-6 bg-gradient-to-t from-black via-black/80 to-transparent">
+            <div className="relative z-10 p-8 flex flex-col items-center gap-6 bg-gradient-to-t from-black via-black/80 to-transparent w-full">
               <div className="flex flex-col items-center gap-2">
                 <p className="text-white/90 text-lg md:text-xl font-serif tracking-widest">
                   {surahData ? SURAH_NAMES_TR[surahData.number - 1] : ''}
@@ -517,12 +617,32 @@ export const QuranReader: React.FC<QuranReaderProps> = ({ onClose, playClick }) 
                 </div>
               </div>
 
-              <button 
-                onClick={togglePlay}
-                className="w-16 h-16 rounded-full glass-panel hover:bg-white/10 flex items-center justify-center text-white transition-all hover:scale-105 active:scale-95"
-              >
-                {isPlaying ? <Pause size={24} /> : <Play size={24} className="ml-1" />}
-              </button>
+              <div className="flex items-center gap-6">
+                <button 
+                  onClick={() => {
+                    if (currentAyahIndex > 0) setCurrentAyahIndex(prev => prev - 1);
+                  }}
+                  className="w-12 h-12 rounded-full glass-panel hover:bg-white/10 flex items-center justify-center text-white transition-all hover:scale-105 active:scale-95"
+                >
+                  <ChevronLeft size={24} />
+                </button>
+                
+                <button 
+                  onClick={togglePlay}
+                  className="w-20 h-20 rounded-full bg-white/10 backdrop-blur-md border border-white/20 hover:bg-white/20 flex items-center justify-center text-white transition-all hover:scale-105 active:scale-95 shadow-[0_0_30px_rgba(255,255,255,0.1)]"
+                >
+                  {isPlaying ? <Pause size={32} /> : <Play size={32} className="ml-2" />}
+                </button>
+
+                <button 
+                  onClick={() => {
+                    if (surahData && currentAyahIndex < surahData.ayahs.length - 1) setCurrentAyahIndex(prev => prev + 1);
+                  }}
+                  className="w-12 h-12 rounded-full glass-panel hover:bg-white/10 flex items-center justify-center text-white transition-all hover:scale-105 active:scale-95"
+                >
+                  <ChevronRight size={24} />
+                </button>
+              </div>
             </div>
           </motion.div>
         )}
