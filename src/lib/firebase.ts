@@ -1,5 +1,5 @@
 import { initializeApp } from 'firebase/app';
-import { getAuth, GithubAuthProvider, OAuthProvider, FacebookAuthProvider, GoogleAuthProvider } from 'firebase/auth';
+import { getAuth, GithubAuthProvider, OAuthProvider, GoogleAuthProvider } from 'firebase/auth';
 import { getFirestore } from 'firebase/firestore';
 import { getStorage } from 'firebase/storage';
 
@@ -26,10 +26,3 @@ githubProvider.addScope('user:email');
 
 export const microsoftProvider = new OAuthProvider('microsoft.com');
 microsoftProvider.addScope('User.Read');
-
-export const facebookProvider = new FacebookAuthProvider();
-facebookProvider.addScope('public_profile');
-facebookProvider.addScope('email');
-facebookProvider.setCustomParameters({
-  'display': 'popup'
-});

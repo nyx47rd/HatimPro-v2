@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
-import { X, Mail, Lock, LogIn, UserPlus, Github, ArrowLeft, Facebook, Link, Fingerprint } from 'lucide-react';
-import { auth, githubProvider, microsoftProvider, facebookProvider, googleProvider } from '../lib/firebase';
+import { X, Mail, Lock, LogIn, UserPlus, Github, ArrowLeft, Link, Fingerprint } from 'lucide-react';
+import { auth, githubProvider, microsoftProvider, googleProvider } from '../lib/firebase';
 import { 
   signInWithEmailAndPassword, 
   createUserWithEmailAndPassword, 
@@ -75,19 +75,6 @@ export const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose }) => {
     setLoading(true);
     try {
       await signInWithPopup(auth, googleProvider);
-      handleClose();
-    } catch (err: any) {
-      setError(getFirebaseErrorMessage(err));
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const handleFacebookLogin = async () => {
-    setError(null);
-    setLoading(true);
-    try {
-      await signInWithPopup(auth, facebookProvider);
       handleClose();
     } catch (err: any) {
       setError(getFirebaseErrorMessage(err));
@@ -404,14 +391,6 @@ export const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose }) => {
                         <path fill="#EA4335" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z" />
                       </svg>
                       Google ile Devam Et
-                    </button>
-
-                    <button
-                      onClick={handleFacebookLogin}
-                      disabled={loading}
-                      className="w-full bg-[#1877F2] hover:bg-[#166fe5] text-white font-semibold py-3 rounded-xl transition-colors flex items-center justify-center gap-2"
-                    >
-                      <Facebook size={18} /> Facebook ile Devam Et
                     </button>
 
                     <button
