@@ -16,12 +16,10 @@ import {
   BookOpen,
   RotateCcw,
   Flame,
-  Shield,
-  Fingerprint
+  Shield
 } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
 import { db } from '../lib/firebase';
-import { registerPasskey } from '../lib/webauthn';
 import { 
   doc, 
   getDoc, 
@@ -305,17 +303,6 @@ export const ProfilePage: React.FC<ProfilePageProps> = ({ username, onBack, play
     } catch (e) {
       console.error("Profile update error:", e);
       setError("Profil güncellenirken bir hata oluştu.");
-    }
-  };
-
-  const handleRegisterPasskey = async () => {
-    try {
-      setError(null);
-      setSuccessMsg(null);
-      await registerPasskey();
-      setSuccessMsg('Biyometrik giriş (Passkey) başarıyla eklendi!');
-    } catch (err: any) {
-      setError(err.message || 'Passkey eklenirken bir hata oluştu.');
     }
   };
 
@@ -641,15 +628,8 @@ export const ProfilePage: React.FC<ProfilePageProps> = ({ username, onBack, play
                     <Shield size={16} className="text-emerald-500" />
                     Güvenlik
                   </h4>
-                  <button
-                    onClick={handleRegisterPasskey}
-                    className="w-full bg-white/5 hover:bg-white/10 border border-white/10 text-white py-3 rounded-2xl font-bold transition-all flex items-center justify-center gap-2"
-                  >
-                    <Fingerprint size={18} />
-                    Biyometrik Giriş (Passkey) Ekle
-                  </button>
                   <p className="text-xs text-white/40 mt-2 text-center">
-                    Cihazınızın parmak izi veya yüz tanıma özelliğini kullanarak şifresiz giriş yapabilirsiniz.
+                    Güvenlik ayarlarınızı ana menüdeki Ayarlar sayfasından yönetebilirsiniz.
                   </p>
                 </div>
 

@@ -1,5 +1,6 @@
 import { auth, db } from './firebase';
-import { doc, setDoc, getDoc, collection, getDocs } from 'firebase/firestore';
+import { doc, setDoc, getDoc } from 'firebase/firestore';
+import { updatePassword, signInWithEmailAndPassword } from 'firebase/auth';
 
 // Helper to convert ArrayBuffer to Base64URL (safe for Firestore document IDs)
 export const bufferToBase64 = (buffer: ArrayBuffer): string => {
@@ -8,15 +9,12 @@ export const bufferToBase64 = (buffer: ArrayBuffer): string => {
   for (let i = 0; i < bytes.byteLength; i++) {
     binary += String.fromCharCode(bytes[i]);
   }
-  // Convert standard Base64 to Base64URL to avoid Firestore path issues
   return window.btoa(binary).replace(/\+/g, '-').replace(/\//g, '_').replace(/=/g, '');
 };
 
 // Helper to convert Base64URL to ArrayBuffer
 export const base64ToBuffer = (base64: string): ArrayBuffer => {
-  // Convert Base64URL back to standard Base64
   let standardBase64 = base64.replace(/-/g, '+').replace(/_/g, '/');
-  // Pad with '=' if necessary
   while (standardBase64.length % 4) {
     standardBase64 += '=';
   }
@@ -28,24 +26,98 @@ export const base64ToBuffer = (base64: string): ArrayBuffer => {
   return bytes.buffer;
 };
 
+// AES-GCM Encryption Helpers
+const generateEncryptionKey = async () => {
+  return await window.crypto.subtle.generateKey(
+    { name: "AES-GCM", length: 256 },
+    true,
+    ["encrypt", "decrypt"]
+  );
+};
+
+const exportKey = async (key: CryptoKey) => {
+  const exported = await window.crypto.subtle.exportKey("raw", key);
+  return new Uint8Array(exported);
+};
+
+const importKey = async (rawKey: ArrayBuffer) => {
+  return await window.crypto.subtle.importKey(
+    "raw",
+    rawKey,
+    { name: "AES-GCM" },
+    false,
+    ["decrypt"]
+  );
+};
+
+const encryptData = async (key: CryptoKey, data: string) => {
+  const iv = window.crypto.getRandomValues(new Uint8Array(12));
+  const encoded = new TextEncoder().encode(data);
+  const ciphertext = await window.crypto.subtle.encrypt(
+    { name: "AES-GCM", iv },
+    key,
+    encoded
+  );
+  return { iv: bufferToBase64(iv), ciphertext: bufferToBase64(ciphertext) };
+};
+
+const decryptData = async (key: CryptoKey, ivBase64: string, ciphertextBase64: string) => {
+  const iv = base64ToBuffer(ivBase64);
+  const ciphertext = base64ToBuffer(ciphertextBase64);
+  const decrypted = await window.crypto.subtle.decrypt(
+    { name: "AES-GCM", iv },
+    key,
+    ciphertext
+  );
+  return new TextDecoder().decode(decrypted);
+};
+
+const generateRandomPassword = () => {
+  const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789!@#$%^&*()_+';
+  let password = '';
+  for (let i = 0; i < 32; i++) {
+    password += chars.charAt(Math.floor(Math.random() * chars.length));
+  }
+  return password;
+};
+
 /**
  * Registers a new passkey for the currently logged-in user.
- * Saves the credential ID and public key info to Firestore under the user's document.
  */
 export const registerPasskey = async () => {
   const user = auth.currentUser;
   if (!user) throw new Error('Kullanıcı girişi yapılmamış.');
+  if (!user.email) throw new Error('Passkey eklemek için hesabınıza bir e-posta adresi bağlı olmalıdır.');
 
   if (!window.PublicKeyCredential) {
     throw new Error('Tarayıcınız WebAuthn (Passkey) desteklemiyor.');
   }
 
-  const challenge = new Uint8Array(32);
-  window.crypto.getRandomValues(challenge);
-
-  const userIdBuffer = new TextEncoder().encode(user.uid);
-
   try {
+    // 1. Generate a strong random password and update Firebase Auth
+    // This allows us to log the user in later without a backend
+    const newPassword = generateRandomPassword();
+    try {
+      await updatePassword(user, newPassword);
+    } catch (err: any) {
+      if (err.code === 'auth/requires-recent-login') {
+        throw new Error('Güvenlik nedeniyle Passkey eklemeden önce çıkış yapıp tekrar giriş yapmanız gerekmektedir.');
+      }
+      throw err;
+    }
+
+    // 2. Generate an encryption key to secure the credentials
+    const encryptionKey = await generateEncryptionKey();
+    const rawKey = await exportKey(encryptionKey); // 32 bytes, fits in userHandle
+
+    // 3. Encrypt the login credentials
+    const payload = JSON.stringify({ email: user.email, password: newPassword });
+    const { iv, ciphertext } = await encryptData(encryptionKey, payload);
+
+    // 4. Create the Passkey, storing the raw encryption key in the user.id (userHandle)
+    const challenge = new Uint8Array(32);
+    window.crypto.getRandomValues(challenge);
+
     const credential = await navigator.credentials.create({
       publicKey: {
         challenge,
@@ -54,9 +126,9 @@ export const registerPasskey = async () => {
           id: window.location.hostname,
         },
         user: {
-          id: userIdBuffer,
-          name: user.email || user.uid,
-          displayName: user.displayName || user.email || 'Kullanıcı',
+          id: rawKey, // Store the decryption key here!
+          name: user.email,
+          displayName: user.displayName || user.email,
         },
         pubKeyCredParams: [
           { type: 'public-key', alg: -7 }, // ES256
@@ -74,16 +146,20 @@ export const registerPasskey = async () => {
 
     if (!credential) throw new Error('Passkey oluşturulamadı.');
 
-    // Store the credential info in Firestore under the user's document
     const credentialIdStr = bufferToBase64(credential.rawId);
     
+    // 5. Store the encrypted credentials in a public Firestore collection
+    // The data is safe because the decryption key is only on the user's authenticator
+    await setDoc(doc(db, 'passkey_payloads', credentialIdStr), {
+      iv,
+      ciphertext,
+      createdAt: new Date().toISOString()
+    });
+
+    // Also store a reference in the user's private collection for management
     await setDoc(doc(db, 'users', user.uid, 'passkeys', credentialIdStr), {
       credentialId: credentialIdStr,
       createdAt: new Date().toISOString(),
-      clientExtensionResults: credential.getClientExtensionResults(),
-      // Note: In a real production app with a backend, we would parse the attestationObject 
-      // to extract and store the actual Public Key (COSE format) for signature verification.
-      // Since this is a client-side implementation, we store the credential ID.
       status: 'active'
     });
 
@@ -96,9 +172,6 @@ export const registerPasskey = async () => {
 
 /**
  * Authenticates a user using a previously registered passkey.
- * Note: Full Firebase Auth login via Passkeys requires a backend (Cloud Functions) 
- * to verify the signature and mint a custom token. This function performs the 
- * WebAuthn client-side verification.
  */
 export const loginWithPasskey = async () => {
   if (!window.PublicKeyCredential) {
@@ -109,6 +182,7 @@ export const loginWithPasskey = async () => {
   window.crypto.getRandomValues(challenge);
 
   try {
+    // 1. Request the passkey from the authenticator
     const assertion = await navigator.credentials.get({
       publicKey: {
         challenge,
@@ -120,17 +194,34 @@ export const loginWithPasskey = async () => {
 
     if (!assertion) throw new Error('Passkey doğrulaması başarısız.');
 
+    const authAssertion = assertion as AuthenticatorAssertionResponse & PublicKeyCredential;
+    const response = authAssertion.response as AuthenticatorAssertionResponse;
+    
+    if (!response.userHandle) {
+      throw new Error('Passkey verisi eksik (userHandle bulunamadı). Lütfen passkey\'i yeniden ekleyin.');
+    }
+
     const credentialIdStr = bufferToBase64(assertion.rawId);
 
-    // In a full implementation, we would send the assertion to a backend:
-    // 1. Backend verifies the signature using the stored Public Key.
-    // 2. Backend mints a Firebase Custom Token.
-    // 3. Client calls signInWithCustomToken(auth, token).
-    
+    // 2. Fetch the encrypted payload from Firestore
+    const payloadDoc = await getDoc(doc(db, 'passkey_payloads', credentialIdStr));
+    if (!payloadDoc.exists()) {
+      throw new Error('Passkey verisi sunucuda bulunamadı. Lütfen passkey\'i yeniden ekleyin.');
+    }
+
+    const { iv, ciphertext } = payloadDoc.data();
+
+    // 3. Decrypt the payload using the key from the authenticator (userHandle)
+    const encryptionKey = await importKey(response.userHandle);
+    const decryptedJson = await decryptData(encryptionKey, iv, ciphertext);
+    const { email, password } = JSON.parse(decryptedJson);
+
+    // 4. Log in to Firebase Auth
+    await signInWithEmailAndPassword(auth, email, password);
+
     return {
       success: true,
-      credentialId: credentialIdStr,
-      message: 'Biyometrik doğrulama başarılı! (Not: Firebase Auth tam entegrasyonu için backend gereklidir.)'
+      message: 'Biyometrik giriş başarılı!'
     };
   } catch (error: any) {
     console.error('Passkey login error:', error);

@@ -41,13 +41,15 @@ import {
   Trophy,
   BarChart2,
   Timer,
-  Mic
+  Mic,
+  Fingerprint
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 import { HatimData, ReadingLog, HatimTask } from './types';
 import { useAuth } from './contexts/AuthContext';
 import { AuthModal } from './components/AuthModal';
 import { syncDataToFirebase, listenToFirebaseData } from './services/db';
+import { registerPasskey } from './lib/webauthn';
 import { auth, db, storage } from './lib/firebase';
 import { signOut, deleteUser, updatePassword, EmailAuthProvider, reauthenticateWithCredential, sendPasswordResetEmail, linkWithPopup, GithubAuthProvider, OAuthProvider, GoogleAuthProvider, FacebookAuthProvider } from 'firebase/auth';
 import { doc, deleteDoc, updateDoc, query, where, collection, onSnapshot, getDoc, deleteField, setDoc } from 'firebase/firestore';
@@ -336,6 +338,20 @@ function AppContent() {
   const [createPasswordInput, setCreatePasswordInput] = useState('');
   const [createPasswordConfirm, setCreatePasswordConfirm] = useState('');
   const [createPasswordError, setCreatePasswordError] = useState<string | null>(null);
+
+  const [passkeyError, setPasskeyError] = useState<string | null>(null);
+  const [passkeySuccess, setPasskeySuccess] = useState<string | null>(null);
+
+  const handleRegisterPasskey = async () => {
+    try {
+      setPasskeyError(null);
+      setPasskeySuccess(null);
+      await registerPasskey();
+      setPasskeySuccess('Biyometrik giriş (Passkey) başarıyla eklendi!');
+    } catch (err: any) {
+      setPasskeyError(err.message || 'Passkey eklenirken bir hata oluştu.');
+    }
+  };
 
   // Check if user needs to create a password
   useEffect(() => {
@@ -1743,25 +1759,6 @@ function AppContent() {
                       )}
                     </div>
 
-                    {/* Facebook */}
-                    <div className="flex items-center justify-between">
-                      <div className="flex items-center gap-2">
-                         <span className="font-semibold text-sage-700 dark:text-white text-sm">Facebook</span>
-                         {user.providerData.some(p => p.providerId === 'facebook.com') && (
-                           <span className="text-[10px] bg-emerald-100 dark:bg-neutral-700 text-emerald-700 dark:text-emerald-400 px-2 py-0.5 rounded-full font-bold">Bağlı</span>
-                         )}
-                      </div>
-                      {!user.providerData.some(p => p.providerId === 'facebook.com') && (
-                        <button 
-                          onClick={() => handleLinkAccount('facebook.com')}
-                          disabled={isLinking}
-                          className="text-xs bg-sage-100 dark:bg-neutral-800 hover:bg-sage-200 dark:hover:bg-neutral-700 text-sage-700 dark:text-white font-bold px-3 py-1.5 rounded-lg transition-colors"
-                        >
-                          Bağla
-                        </button>
-                      )}
-                    </div>
-
                     {/* Github */}
                     <div className="flex items-center justify-between">
                       <div className="flex items-center gap-2">
@@ -1799,6 +1796,33 @@ function AppContent() {
                         </button>
                       )}
                     </div>
+                 </div>
+              </div>
+
+              {/* Passkey Security */}
+              <div className="border border-sage-100 dark:border-neutral-800 rounded-2xl overflow-hidden mt-4">
+                 <div className="p-4 bg-sage-50 dark:bg-neutral-800 border-b border-sage-100 dark:border-neutral-700">
+                    <div className="flex items-center gap-3">
+                      <div className="bg-white dark:bg-neutral-700 p-2 rounded-lg text-sage-600 dark:text-white shadow-sm">
+                        <Fingerprint size={20} />
+                      </div>
+                      <span className="font-bold text-sage-800 dark:text-white">Biyometrik Güvenlik</span>
+                    </div>
+                 </div>
+                 <div className="p-4 bg-white dark:bg-neutral-900 space-y-3">
+                    {passkeyError && <p className="text-xs text-red-600 font-bold">{passkeyError}</p>}
+                    {passkeySuccess && <p className="text-xs text-emerald-600 dark:text-emerald-400 font-bold">{passkeySuccess}</p>}
+                    
+                    <button
+                      onClick={handleRegisterPasskey}
+                      className="w-full bg-sage-100 dark:bg-neutral-800 hover:bg-sage-200 dark:hover:bg-neutral-700 text-sage-800 dark:text-white font-bold py-3 rounded-xl transition-colors flex items-center justify-center gap-2"
+                    >
+                      <Fingerprint size={18} />
+                      Biyometrik Giriş (Passkey) Ekle
+                    </button>
+                    <p className="text-xs text-sage-500 dark:text-neutral-400 text-center">
+                      Cihazınızın parmak izi veya yüz tanıma özelliğini kullanarak şifresiz giriş yapabilirsiniz.
+                    </p>
                  </div>
               </div>
             </div>
