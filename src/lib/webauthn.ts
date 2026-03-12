@@ -1,19 +1,26 @@
 import { auth, db } from './firebase';
 import { doc, setDoc, getDoc, collection, getDocs } from 'firebase/firestore';
 
-// Helper to convert ArrayBuffer to Base64
+// Helper to convert ArrayBuffer to Base64URL (safe for Firestore document IDs)
 export const bufferToBase64 = (buffer: ArrayBuffer): string => {
   const bytes = new Uint8Array(buffer);
   let binary = '';
   for (let i = 0; i < bytes.byteLength; i++) {
     binary += String.fromCharCode(bytes[i]);
   }
-  return window.btoa(binary);
+  // Convert standard Base64 to Base64URL to avoid Firestore path issues
+  return window.btoa(binary).replace(/\+/g, '-').replace(/\//g, '_').replace(/=/g, '');
 };
 
-// Helper to convert Base64 to ArrayBuffer
+// Helper to convert Base64URL to ArrayBuffer
 export const base64ToBuffer = (base64: string): ArrayBuffer => {
-  const binary = window.atob(base64);
+  // Convert Base64URL back to standard Base64
+  let standardBase64 = base64.replace(/-/g, '+').replace(/_/g, '/');
+  // Pad with '=' if necessary
+  while (standardBase64.length % 4) {
+    standardBase64 += '=';
+  }
+  const binary = window.atob(standardBase64);
   const bytes = new Uint8Array(binary.length);
   for (let i = 0; i < binary.length; i++) {
     bytes[i] = binary.charCodeAt(i);
