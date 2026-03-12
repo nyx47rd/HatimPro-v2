@@ -1,5 +1,5 @@
 import { auth, db } from './firebase';
-import { doc, setDoc, getDoc } from 'firebase/firestore';
+import { doc, setDoc, getDoc, collection, getDocs, deleteDoc } from 'firebase/firestore';
 import { updatePassword, signInWithEmailAndPassword } from 'firebase/auth';
 
 // Helper to convert ArrayBuffer to Base64URL (safe for Firestore document IDs)
@@ -226,5 +226,43 @@ export const loginWithPasskey = async () => {
   } catch (error: any) {
     console.error('Passkey login error:', error);
     throw new Error(error.message || 'Biyometrik giriş sırasında bir hata oluştu.');
+  }
+};
+
+/**
+ * Fetches the user's registered passkeys.
+ */
+export const getUserPasskeys = async () => {
+  const user = auth.currentUser;
+  if (!user) throw new Error('Kullanıcı girişi yapılmamış.');
+
+  try {
+    const passkeysRef = collection(db, 'users', user.uid, 'passkeys');
+    const snapshot = await getDocs(passkeysRef);
+    return snapshot.docs.map(doc => ({
+      id: doc.id,
+      ...doc.data()
+    }));
+  } catch (error: any) {
+    console.error('Error fetching passkeys:', error);
+    throw new Error('Passkey listesi alınırken bir hata oluştu.');
+  }
+};
+
+/**
+ * Deletes a registered passkey.
+ */
+export const deletePasskey = async (credentialId: string) => {
+  const user = auth.currentUser;
+  if (!user) throw new Error('Kullanıcı girişi yapılmamış.');
+
+  try {
+    // Delete from user's private collection
+    await deleteDoc(doc(db, 'users', user.uid, 'passkeys', credentialId));
+    // Delete from public payloads collection
+    await deleteDoc(doc(db, 'passkey_payloads', credentialId));
+  } catch (error: any) {
+    console.error('Error deleting passkey:', error);
+    throw new Error('Passkey silinirken bir hata oluştu.');
   }
 };

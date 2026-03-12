@@ -49,7 +49,7 @@ import { HatimData, ReadingLog, HatimTask } from './types';
 import { useAuth } from './contexts/AuthContext';
 import { AuthModal } from './components/AuthModal';
 import { syncDataToFirebase, listenToFirebaseData } from './services/db';
-import { registerPasskey } from './lib/webauthn';
+import { registerPasskey, getUserPasskeys, deletePasskey } from './lib/webauthn';
 import { auth, db, storage } from './lib/firebase';
 import { signOut, deleteUser, updatePassword, EmailAuthProvider, reauthenticateWithCredential, sendPasswordResetEmail, linkWithPopup, GithubAuthProvider, OAuthProvider, GoogleAuthProvider, FacebookAuthProvider } from 'firebase/auth';
 import { doc, deleteDoc, updateDoc, query, where, collection, onSnapshot, getDoc, deleteField, setDoc } from 'firebase/firestore';
@@ -341,6 +341,27 @@ function AppContent() {
 
   const [passkeyError, setPasskeyError] = useState<string | null>(null);
   const [passkeySuccess, setPasskeySuccess] = useState<string | null>(null);
+  const [passkeys, setPasskeys] = useState<any[]>([]);
+  const [isLoadingPasskeys, setIsLoadingPasskeys] = useState(false);
+
+  const loadPasskeys = async () => {
+    if (!user) return;
+    try {
+      setIsLoadingPasskeys(true);
+      const keys = await getUserPasskeys();
+      setPasskeys(keys);
+    } catch (err) {
+      console.error("Passkey yükleme hatası:", err);
+    } finally {
+      setIsLoadingPasskeys(false);
+    }
+  };
+
+  useEffect(() => {
+    if (user && activeView === 'settings') {
+      loadPasskeys();
+    }
+  }, [user, activeView]);
 
   const handleRegisterPasskey = async () => {
     try {
@@ -348,8 +369,21 @@ function AppContent() {
       setPasskeySuccess(null);
       await registerPasskey();
       setPasskeySuccess('Biyometrik giriş (Passkey) başarıyla eklendi!');
+      loadPasskeys();
     } catch (err: any) {
       setPasskeyError(err.message || 'Passkey eklenirken bir hata oluştu.');
+    }
+  };
+
+  const handleDeletePasskey = async (credentialId: string) => {
+    try {
+      setPasskeyError(null);
+      setPasskeySuccess(null);
+      await deletePasskey(credentialId);
+      setPasskeySuccess('Biyometrik giriş başarıyla kaldırıldı.');
+      loadPasskeys();
+    } catch (err: any) {
+      setPasskeyError(err.message || 'Passkey kaldırılırken bir hata oluştu.');
     }
   };
 
@@ -1813,6 +1847,40 @@ function AppContent() {
                     {passkeyError && <p className="text-xs text-red-600 font-bold">{passkeyError}</p>}
                     {passkeySuccess && <p className="text-xs text-emerald-600 dark:text-emerald-400 font-bold">{passkeySuccess}</p>}
                     
+                    {isLoadingPasskeys ? (
+                      <div className="flex justify-center py-4">
+                        <div className="w-6 h-6 border-2 border-sage-500 border-t-transparent rounded-full animate-spin"></div>
+                      </div>
+                    ) : passkeys.length > 0 && (
+                      <div className="space-y-2 mb-4">
+                        <p className="text-xs font-bold text-sage-500 dark:text-neutral-400 uppercase tracking-wider">Kayıtlı Cihazlar</p>
+                        {passkeys.map(pk => (
+                          <div key={pk.id} className="flex items-center justify-between bg-sage-50 dark:bg-neutral-800 p-3 rounded-xl border border-sage-100 dark:border-neutral-700">
+                            <div className="flex items-center gap-3">
+                              <div className="bg-white dark:bg-neutral-700 p-2 rounded-lg">
+                                <Fingerprint size={16} className="text-sage-600 dark:text-sage-400" />
+                              </div>
+                              <div className="flex flex-col">
+                                <span className="text-sm font-bold text-sage-800 dark:text-white">
+                                  Passkey
+                                </span>
+                                <span className="text-[10px] text-sage-500 dark:text-neutral-400">
+                                  {new Date(pk.createdAt).toLocaleDateString('tr-TR')}
+                                </span>
+                              </div>
+                            </div>
+                            <button
+                              onClick={() => handleDeletePasskey(pk.id)}
+                              className="p-2 text-red-500 hover:bg-red-50 dark:hover:bg-red-900/20 rounded-lg transition-colors"
+                              title="Kaldır"
+                            >
+                              <Trash2 size={16} />
+                            </button>
+                          </div>
+                        ))}
+                      </div>
+                    )}
+
                     <button
                       onClick={handleRegisterPasskey}
                       className="w-full bg-sage-100 dark:bg-neutral-800 hover:bg-sage-200 dark:hover:bg-neutral-700 text-sage-800 dark:text-white font-bold py-3 rounded-xl transition-colors flex items-center justify-center gap-2"
