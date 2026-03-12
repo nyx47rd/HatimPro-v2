@@ -16,10 +16,12 @@ import {
   BookOpen,
   RotateCcw,
   Flame,
-  Shield
+  Shield,
+  Fingerprint
 } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
 import { db } from '../lib/firebase';
+import { registerPasskey } from '../lib/webauthn';
 import { 
   doc, 
   getDoc, 
@@ -71,6 +73,7 @@ export const ProfilePage: React.FC<ProfilePageProps> = ({ username, onBack, play
   const [editBio, setEditBio] = useState('');
   const [editPhoto, setEditPhoto] = useState('');
   const [error, setError] = useState<string | null>(null);
+  const [successMsg, setSuccessMsg] = useState<string | null>(null);
 
   const [followersCount, setFollowersCount] = useState(0);
   const [activeSlide, setActiveSlide] = useState(0);
@@ -262,6 +265,7 @@ export const ProfilePage: React.FC<ProfilePageProps> = ({ username, onBack, play
     if (!user) return;
     playClick();
     setError(null);
+    setSuccessMsg(null);
 
     let newUsernameHistory = currentUserProfile?.usernameChangeHistory || [];
     const now = Date.now();
@@ -301,6 +305,17 @@ export const ProfilePage: React.FC<ProfilePageProps> = ({ username, onBack, play
     } catch (e) {
       console.error("Profile update error:", e);
       setError("Profil güncellenirken bir hata oluştu.");
+    }
+  };
+
+  const handleRegisterPasskey = async () => {
+    try {
+      setError(null);
+      setSuccessMsg(null);
+      await registerPasskey();
+      setSuccessMsg('Biyometrik giriş (Passkey) başarıyla eklendi!');
+    } catch (err: any) {
+      setError(err.message || 'Passkey eklenirken bir hata oluştu.');
     }
   };
 
@@ -554,7 +569,7 @@ export const ProfilePage: React.FC<ProfilePageProps> = ({ username, onBack, play
             >
               <div className="flex items-center justify-between mb-8">
                 <h3 className="text-xl font-bold">Profili Düzenle</h3>
-                <button onClick={() => setIsEditing(false)} className="p-2 hover:bg-white/10 rounded-full">
+                <button onClick={() => { setIsEditing(false); setError(null); setSuccessMsg(null); }} className="p-2 hover:bg-white/10 rounded-full">
                   <X size={24} />
                 </button>
               </div>
@@ -621,11 +636,29 @@ export const ProfilePage: React.FC<ProfilePageProps> = ({ username, onBack, play
                   />
                 </div>
 
-                {error && <p className="text-red-500 text-sm font-bold">{error}</p>}
+                <div className="pt-4 border-t border-white/10">
+                  <h4 className="text-sm font-bold text-white mb-2 flex items-center gap-2">
+                    <Shield size={16} className="text-emerald-500" />
+                    Güvenlik
+                  </h4>
+                  <button
+                    onClick={handleRegisterPasskey}
+                    className="w-full bg-white/5 hover:bg-white/10 border border-white/10 text-white py-3 rounded-2xl font-bold transition-all flex items-center justify-center gap-2"
+                  >
+                    <Fingerprint size={18} />
+                    Biyometrik Giriş (Passkey) Ekle
+                  </button>
+                  <p className="text-xs text-white/40 mt-2 text-center">
+                    Cihazınızın parmak izi veya yüz tanıma özelliğini kullanarak şifresiz giriş yapabilirsiniz.
+                  </p>
+                </div>
+
+                {error && <p className="text-red-500 text-sm font-bold text-center">{error}</p>}
+                {successMsg && <p className="text-emerald-500 text-sm font-bold text-center">{successMsg}</p>}
 
                 <button 
                   onClick={handleSaveProfile}
-                  className="w-full bg-white text-black py-4 rounded-2xl font-bold hover:bg-white/90 transition-all"
+                  className="w-full bg-white text-black py-4 rounded-2xl font-bold hover:bg-white/90 transition-all mt-4"
                 >
                   Kaydet
                 </button>

@@ -4,7 +4,9 @@ import {
   onAuthStateChanged, 
   signInWithEmailAndPassword, 
   createUserWithEmailAndPassword, 
-  signOut 
+  signOut,
+  isSignInWithEmailLink,
+  signInWithEmailLink
 } from 'firebase/auth';
 import { auth, db } from '../lib/firebase';
 import { doc, onSnapshot, setDoc, getDoc } from 'firebase/firestore';
@@ -27,6 +29,29 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
+    // Handle Magic Link Sign In
+    if (isSignInWithEmailLink(auth, window.location.href)) {
+      let email = window.localStorage.getItem('emailForSignIn');
+      if (!email) {
+        // User opened the link on a different device. To prevent session fixation
+        // attacks, ask the user to provide the associated email again.
+        email = window.prompt('Lütfen doğrulama için e-posta adresinizi girin:');
+      }
+      if (email) {
+        signInWithEmailLink(auth, email, window.location.href)
+          .then((result) => {
+            window.localStorage.removeItem('emailForSignIn');
+            // Remove the link from URL to prevent re-triggering
+            window.history.replaceState(null, '', window.location.pathname);
+          })
+          .catch((error) => {
+            console.error("Magic link sign in error:", error);
+          });
+      }
+    }
+
+    let unsubProfile: (() => void) | undefined;
+
     const unsubscribe = onAuthStateChanged(auth, async (user) => {
       setUser(user);
       if (user) {
@@ -60,7 +85,8 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
           await setDoc(profileRef, newProfile);
         }
 
-        const unsubProfile = onSnapshot(profileRef, (doc) => {
+        if (unsubProfile) unsubProfile();
+        unsubProfile = onSnapshot(profileRef, (doc) => {
           if (doc.exists()) {
             setProfile({ ...doc.data(), uid: doc.id } as UserProfile);
           }
@@ -69,13 +95,19 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         });
         
         setLoading(false);
-        return () => unsubProfile();
       } else {
+        if (unsubProfile) {
+          unsubProfile();
+          unsubProfile = undefined;
+        }
         setProfile(null);
         setLoading(false);
       }
     });
-    return unsubscribe;
+    return () => {
+      unsubscribe();
+      if (unsubProfile) unsubProfile();
+    };
   }, []);
 
   return (

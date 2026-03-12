@@ -18,8 +18,13 @@
 
 ## Important locations
 - `src/App.tsx`: Main application logic, routing, and state management.
-- `src/components/`: Reusable UI components (StatsPage, ProfilePage, etc.).
-- `src/contexts/AuthContext.tsx`: Firebase authentication logic.
+- `src/components/`: Reusable UI components (StatsPage, ProfilePage, AuthModal, etc.).
+- `src/contexts/AuthContext.tsx`: Firebase authentication logic, including Magic Link detection.
+- `src/lib/webauthn.ts`: Passkey (WebAuthn) registration and verification logic.
+
+## Authentication
+- **Magic Link**: Uses `sendSignInLinkToEmail` and `isSignInWithEmailLink`. The email is stored in `localStorage` (`emailForSignIn`) to complete the flow.
+- **Passkeys (Biometric)**: Uses the browser's `navigator.credentials` API. Public keys (credential IDs) are stored in Firestore under `users/{uid}/passkeys/{credentialId}`. Note: Full Firebase Auth login via Passkeys requires a backend (Cloud Functions) to mint custom tokens; the current implementation performs client-side verification.
 
 ## Known gotchas
 - **Chunk Errors**: The environment frequently triggers chunk loading errors. The recovery script in `index.html` and `main.tsx` is critical for app stability.
