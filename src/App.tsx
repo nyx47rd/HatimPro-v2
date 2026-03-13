@@ -290,7 +290,8 @@ function AppContent() {
   const switchAccount = async (uid: string) => {
     try {
       playClick();
-      await handleLogout();
+      await signOut(auth);
+      setIsAccountSwitcherOpen(false);
       setIsAuthModalOpen(true);
     } catch (error) {
       console.error("Switch account error:", error);
@@ -1497,7 +1498,7 @@ function AppContent() {
               </div>
               <button 
                 onClick={() => handleDeleteLog(log.id)}
-                className="p-2 text-sage-200 dark:text-neutral-600 hover:text-red-500 dark:hover:text-red-400 opacity-0 group-hover:opacity-100 transition-opacity"
+                className="p-2 text-sage-200 dark:text-neutral-600 hover:text-red-500 dark:hover:text-red-400 transition-opacity"
               >
                 <Trash2 size={18} />
               </button>
@@ -1659,7 +1660,7 @@ function AppContent() {
                 </div>
                 <button 
                   onClick={() => handleDeleteLog(log.id)}
-                  className="p-2 text-sage-200 hover:text-red-500 dark:text-neutral-600 dark:hover:text-red-400 opacity-0 group-hover:opacity-100 transition-opacity"
+                  className="p-2 text-sage-200 hover:text-red-500 dark:text-neutral-600 dark:hover:text-red-400 transition-opacity"
                 >
                   <Trash2 size={18} />
                 </button>
@@ -2743,7 +2744,7 @@ function AppContent() {
                     {user?.uid !== acc.uid && (
                       <button 
                         onClick={() => removeAccount(acc.uid)}
-                        className="p-2 text-sage-300 hover:text-red-500 transition-colors opacity-0 group-hover:opacity-100"
+                        className="p-2 text-sage-300 hover:text-red-500 transition-colors"
                       >
                         <Trash2 size={16} />
                       </button>
@@ -2755,7 +2756,8 @@ function AppContent() {
               <button 
                 onClick={() => {
                   playClick();
-                  handleLogout().then(() => {
+                  signOut(auth).then(() => {
+                    setIsAccountSwitcherOpen(false);
                     setIsAuthModalOpen(true);
                   });
                 }}
