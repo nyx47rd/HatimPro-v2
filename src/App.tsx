@@ -48,6 +48,7 @@ import { motion, AnimatePresence } from 'motion/react';
 import { HatimData, ReadingLog, HatimTask } from './types';
 import { useAuth } from './contexts/AuthContext';
 import { AuthModal } from './components/AuthModal';
+import { useGitHubUpdate } from './hooks/useGitHubUpdate';
 import { syncDataToFirebase, listenToFirebaseData } from './services/db';
 import { registerPasskey, getUserPasskeys, deletePasskey } from './lib/webauthn';
 import { auth, db, storage } from './lib/firebase';
@@ -155,6 +156,7 @@ export default function App() {
 }
 
 function AppContent() {
+  const { updateAvailable, isChecking, lastCheckTime, checkForUpdates, applyUpdate, repo, updateRepo } = useGitHubUpdate();
   const [activeView, setActiveView] = useState<View>(() => {
     const path = window.location.pathname;
     if (path.startsWith('/@')) {
@@ -1991,6 +1993,52 @@ function AppContent() {
           </div>
         </section>
 
+        {/* GitHub Version Control Section */}
+        <section className="bg-white dark:bg-neutral-900 rounded-3xl p-6 border border-sage-100 dark:border-neutral-800 shadow-sm">
+          <h3 className="text-sm font-bold text-sage-500 dark:text-neutral-400 uppercase tracking-widest mb-4">Sürüm Kontrolü</h3>
+          
+          <div className="space-y-4">
+            <div>
+              <label className="block text-xs font-semibold text-sage-500 mb-2 uppercase tracking-wider">GitHub Deposu (Kullanıcı/Depo)</label>
+              <div className="flex gap-2">
+                <input 
+                  type="text" 
+                  value={repo}
+                  onChange={(e) => updateRepo(e.target.value)}
+                  placeholder="Örn: yasar123/hatimpro"
+                  className="flex-1 bg-sage-50 dark:bg-neutral-800 border-2 border-sage-100 dark:border-neutral-700 rounded-xl px-4 py-2 text-sm font-bold text-sage-800 dark:text-white focus:border-sage-500 focus:outline-none transition-all"
+                />
+              </div>
+              <p className="text-[10px] text-sage-400 mt-1">Uygulamanın güncellemeleri bu depodan kontrol edilir.</p>
+            </div>
+
+            <div className="flex items-center justify-between p-4 bg-sage-50 dark:bg-neutral-800 rounded-2xl border border-sage-100 dark:border-neutral-700">
+              <div>
+                <p className="font-bold text-sage-800 dark:text-white text-sm">Güncelleme Durumu</p>
+                <p className="text-xs text-sage-500 dark:text-neutral-400 mt-1">
+                  {updateAvailable 
+                    ? <span className="text-amber-600 font-bold">Yeni sürüm mevcut!</span>
+                    : lastCheckTime 
+                      ? `Son kontrol: ${lastCheckTime.toLocaleTimeString('tr-TR')}`
+                      : 'Henüz kontrol edilmedi'}
+                </p>
+              </div>
+              <button 
+                onClick={() => checkForUpdates(true)}
+                disabled={isChecking || !repo}
+                className="px-4 py-2 bg-sage-200 dark:bg-neutral-700 hover:bg-sage-300 dark:hover:bg-neutral-600 text-sage-800 dark:text-white text-xs font-bold rounded-xl transition-colors disabled:opacity-50 flex items-center gap-2"
+              >
+                {isChecking ? (
+                  <div className="w-4 h-4 border-2 border-sage-500 border-t-transparent rounded-full animate-spin"></div>
+                ) : (
+                  <RotateCcw size={14} />
+                )}
+                Kontrol Et
+              </button>
+            </div>
+          </div>
+        </section>
+
         {/* About Section */}
         <section className="bg-white dark:bg-black rounded-3xl p-6 border border-sage-100 dark:border-white/10 shadow-sm mb-6">
           <div className="flex items-center gap-3 mb-6">
@@ -2887,6 +2935,36 @@ function AppContent() {
                   Daha Sonra
                 </button>
               </form>
+            </motion.div>
+          </div>
+        )}
+      </AnimatePresence>
+
+      {/* Update Available Modal */}
+      <AnimatePresence>
+        {updateAvailable && (
+          <div className="fixed inset-0 z-[100] flex items-center justify-center p-4">
+            <div className="absolute inset-0 bg-sage-900/40 backdrop-blur-sm" />
+            <motion.div 
+              initial={{ opacity: 0, scale: 0.95 }}
+              animate={{ opacity: 1, scale: 1 }}
+              exit={{ opacity: 0, scale: 0.95 }}
+              className="bg-white dark:bg-neutral-900 w-full max-w-sm rounded-3xl p-8 relative z-10 shadow-2xl text-center"
+            >
+              <div className="w-16 h-16 bg-emerald-100 dark:bg-emerald-900/30 rounded-full flex items-center justify-center mx-auto mb-6">
+                <RotateCcw className="text-emerald-600 dark:text-emerald-400" size={32} />
+              </div>
+              <h3 className="text-2xl font-bold text-sage-800 dark:text-white mb-2">Yeni Güncelleme!</h3>
+              <p className="text-sage-600 dark:text-neutral-400 mb-8">
+                Uygulamanın yeni bir sürümü yayınlandı. Yenilikleri görmek ve daha iyi bir deneyim yaşamak için lütfen sayfayı yenileyin.
+              </p>
+              
+              <button 
+                onClick={applyUpdate}
+                className="w-full py-4 bg-emerald-600 hover:bg-emerald-700 text-white font-bold rounded-2xl transition-colors shadow-lg shadow-emerald-600/20"
+              >
+                Şimdi Yenile
+              </button>
             </motion.div>
           </div>
         )}
