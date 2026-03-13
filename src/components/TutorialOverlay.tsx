@@ -28,7 +28,7 @@ const TUTORIAL_STEPS = [
         <p><strong>Görevler</strong> sekmesinden kendinize özel okuma hedefleri belirleyebilirsiniz.</p>
         <ul className="list-disc pl-5 space-y-2 text-neutral-400">
           <li><strong>Okumaya Başla:</strong> Bugünün kaydını yapmak için bu butonu kullanın. Zamanlayıcı başlar ve okuma bittiğinde manevi taahhüt ile kaydedilir.</li>
-          <li><strong>Geçmiş Kayıt (+):</strong> Yanındaki <strong className="text-white">+</strong> butonu <strong>sadece geçmiş günler</strong> için kayıt girmenizi sağlar.</li>
+          <li><strong>Manuel Kayıt (+):</strong> Yanındaki <strong className="text-white">+</strong> butonu ile <strong>bugün veya geçmiş günler</strong> için manuel olarak sayfa kaydı girebilirsiniz.</li>
           <li><strong>İlerleme:</strong> Görevlerinizi tamamladıkça XP kazanır ve seviye atlarsınız.</li>
         </ul>
       </div>

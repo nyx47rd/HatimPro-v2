@@ -537,9 +537,8 @@ function AppContent() {
   // Form States
   const [newPageInput, setNewPageInput] = useState<string>('');
   const [newLogDate, setNewLogDate] = useState<string>(() => {
-    const yesterday = new Date();
-    yesterday.setDate(yesterday.getDate() - 1);
-    return yesterday.toISOString().split('T')[0];
+    const today = new Date();
+    return today.toISOString().split('T')[0];
   });
   const [startJuzSelection, setStartJuzSelection] = useState<number | null>(null);
   const [customStartPage, setCustomStartPage] = useState<string>('1');
@@ -672,9 +671,9 @@ function AppContent() {
     const today = new Date();
     today.setHours(0, 0, 0, 0);
     
-    if (selectedDate >= today) {
+    if (selectedDate > today) {
       playDelete();
-      setErrorMessage("Bugünün kaydını sadece 'Okumaya Başla' butonu ile yapabilirsiniz.");
+      setErrorMessage("Gelecek bir tarih için kayıt giremezsiniz.");
       return;
     }
 
@@ -687,6 +686,21 @@ function AppContent() {
       pagesRead: actualPagesRead,
       absolutePage: 0, // Will be recalculated
     };
+
+    // Apply a small trust score penalty for manual entries to discourage cheating
+    if (user) {
+      const userRef = doc(db, 'users', user.uid);
+      getDoc(userRef).then(userSnap => {
+        if (userSnap.exists()) {
+          const currentStats = userSnap.data()?.stats || {};
+          const currentTrustScore = currentStats.trustScore ?? 100;
+          // -2 penalty for unverified manual entry
+          updateDoc(userRef, {
+            'stats.trustScore': Math.max(0, currentTrustScore - 2)
+          }).catch(console.error);
+        }
+      }).catch(console.error);
+    }
 
     setData(prev => {
       const allLogs = [newLog, ...prev.logs];
@@ -1110,14 +1124,15 @@ function AppContent() {
     
     // Trust Score Logic
     // Average reading speed is ~2-3 mins per page (120-180s)
-    // If < 30s per page, it's suspicious
+    // A Hafiz can read a page in ~45-60 seconds.
+    // If < 15s per page, it's physically impossible to articulate (suspicious)
     let trustImpact = 0;
     if (pagesRead > 0) {
       const secondsPerPage = timeSpent / pagesRead;
-      if (secondsPerPage < 30) {
-        trustImpact = -5; // Suspiciously fast
-      } else if (secondsPerPage > 60) {
-        trustImpact = 2; // Good pace
+      if (secondsPerPage < 15) {
+        trustImpact = -5; // Suspiciously fast (cheating)
+      } else {
+        trustImpact = 2; // Good pace / Hafiz pace
       }
     }
 
@@ -1137,13 +1152,11 @@ function AppContent() {
 
     // Save the log
     const now = new Date();
-    const selectedDate = new Date(newLogDate);
-    selectedDate.setHours(now.getHours(), now.getMinutes(), now.getSeconds(), now.getMilliseconds());
 
     const newLog: ReadingLog = {
       id: crypto.randomUUID(),
       taskId: activeTask.id,
-      date: selectedDate.toISOString(),
+      date: now.toISOString(),
       pagesRead: pagesRead,
       absolutePage: 0,
     };
@@ -1294,7 +1307,7 @@ function AppContent() {
               <button 
                 onClick={() => handleProtectedAction(() => { playOpen(); setIsAddLogOpen(true); })}
                 className="p-4 bg-white dark:bg-neutral-800 border border-sage-200 dark:border-neutral-700 rounded-2xl text-sage-600 dark:text-white hover:bg-sage-50 transition-colors"
-                title="Geçmiş Kayıt Ekle"
+                title="Manuel Kayıt Ekle"
               >
                 <Plus size={24} />
               </button>
@@ -2468,14 +2481,21 @@ function AppContent() {
                       value={newLogDate}
                       max={(() => {
                         const d = new Date();
-                        d.setDate(d.getDate() - 1);
                         return d.toISOString().split('T')[0];
                       })()}
                       onChange={(e) => setNewLogDate(e.target.value)}
                       className="w-full bg-sage-50 border-2 border-sage-100 rounded-2xl px-6 py-3 font-bold text-sage-800 focus:border-sage-500 focus:outline-none transition-all"
                     />
-                    <p className="text-[10px] text-sage-400 mt-1">Sadece dünden önceki günler için kayıt yapabilirsiniz.</p>
+                    <p className="text-[10px] text-sage-400 mt-1">Geçmiş günler veya bugün için kayıt yapabilirsiniz.</p>
                   </div>
+                  
+                  <div className="bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-800 rounded-xl p-3 flex items-start gap-2">
+                    <span className="text-amber-500 mt-0.5">⚠️</span>
+                    <p className="text-xs text-amber-700 dark:text-amber-400">
+                      <strong>Güven Puanı Uyarısı:</strong> Zamanlayıcı kullanmadan yapılan manuel kayıtlar, sistem tarafından doğrulanamadığı için <strong>Güven Puanınızı (Trust Score) 2 puan düşürür</strong>.
+                    </p>
+                  </div>
+
                   <div>
                     <label className="block text-xs font-semibold text-sage-500 mb-2 uppercase tracking-wider">
                       Kaç sayfa okudunuz?
