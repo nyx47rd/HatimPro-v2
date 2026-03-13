@@ -547,6 +547,13 @@ function AppContent() {
   const [customTaskName, setCustomTaskName] = useState<string>('');
   const [isAuthModalOpen, setIsAuthModalOpen] = useState(false);
   
+  // Close AuthModal automatically when user logs in
+  useEffect(() => {
+    if (user && isAuthModalOpen) {
+      setIsAuthModalOpen(false);
+    }
+  }, [user, isAuthModalOpen]);
+
   const isFirebaseSyncing = useRef(false);
   const isInitialLoad = useRef(true);
 
@@ -1085,12 +1092,21 @@ function AppContent() {
     setShowCommitmentModal(true);
   };
 
+  const [commitmentError, setCommitmentError] = useState<string | null>(null);
+
   const confirmReading = async () => {
     if (!user || !activeTask) return;
-    playSuccess();
     
     const timeSpent = readingTime; // in seconds
     const pagesRead = parseInt(newPageInput) || 0;
+    
+    if (pagesRead <= 0) {
+      setCommitmentError("Lütfen okuduğunuz sayfa sayısını girin.");
+      return;
+    }
+    
+    setCommitmentError(null);
+    playSuccess();
     
     // Trust Score Logic
     // Average reading speed is ~2-3 mins per page (120-180s)
@@ -2383,10 +2399,16 @@ function AppContent() {
                   <input 
                     type="number" 
                     value={newPageInput}
-                    onChange={(e) => setNewPageInput(e.target.value)}
+                    onChange={(e) => {
+                      setNewPageInput(e.target.value);
+                      setCommitmentError(null);
+                    }}
                     placeholder="Örn: 5"
                     className="w-full bg-sage-50 dark:bg-neutral-800 border border-sage-200 dark:border-neutral-700 rounded-xl px-4 py-3 focus:outline-none focus:ring-2 focus:ring-sage-500 dark:text-white"
                   />
+                  {commitmentError && (
+                    <p className="text-red-500 text-xs mt-2 font-medium">{commitmentError}</p>
+                  )}
                 </div>
                 <div className="flex items-center justify-between bg-sage-50 dark:bg-neutral-800 p-4 rounded-xl">
                   <span className="text-sm text-sage-600 dark:text-neutral-400">Okuma Süresi:</span>

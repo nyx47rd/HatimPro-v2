@@ -77,11 +77,49 @@ export const ProfilePage: React.FC<ProfilePageProps> = ({ username, onBack, play
   const [activeSlide, setActiveSlide] = useState(0);
   const scrollRef = React.useRef<HTMLDivElement>(null);
 
+  // Mouse drag to scroll logic
+  const isDragging = React.useRef(false);
+  const startX = React.useRef(0);
+  const scrollLeft = React.useRef(0);
+
+  const handleMouseDown = (e: React.MouseEvent) => {
+    if (!scrollRef.current) return;
+    isDragging.current = true;
+    startX.current = e.pageX - scrollRef.current.offsetLeft;
+    scrollLeft.current = scrollRef.current.scrollLeft;
+    scrollRef.current.style.cursor = 'grabbing';
+    scrollRef.current.style.scrollSnapType = 'none'; // Disable snap while dragging
+  };
+
+  const handleMouseLeave = () => {
+    isDragging.current = false;
+    if (scrollRef.current) {
+      scrollRef.current.style.cursor = 'grab';
+      scrollRef.current.style.scrollSnapType = 'x mandatory';
+    }
+  };
+
+  const handleMouseUp = () => {
+    isDragging.current = false;
+    if (scrollRef.current) {
+      scrollRef.current.style.cursor = 'grab';
+      scrollRef.current.style.scrollSnapType = 'x mandatory';
+    }
+  };
+
+  const handleMouseMove = (e: React.MouseEvent) => {
+    if (!isDragging.current || !scrollRef.current) return;
+    e.preventDefault();
+    const x = e.pageX - scrollRef.current.offsetLeft;
+    const walk = (x - startX.current) * 2; // Scroll-fast
+    scrollRef.current.scrollLeft = scrollLeft.current - walk;
+  };
+
   const handleScroll = () => {
     if (scrollRef.current) {
-      const scrollLeft = scrollRef.current.scrollLeft;
+      const currentScrollLeft = scrollRef.current.scrollLeft;
       const width = scrollRef.current.offsetWidth;
-      const index = Math.round(scrollLeft / width);
+      const index = Math.round(currentScrollLeft / width);
       setActiveSlide(index);
     }
   };
@@ -383,7 +421,11 @@ export const ProfilePage: React.FC<ProfilePageProps> = ({ username, onBack, play
             <div 
               ref={scrollRef}
               onScroll={handleScroll}
-              className="flex gap-4 overflow-x-auto snap-x snap-mandatory pb-4 [&::-webkit-scrollbar]:hidden [-ms-overflow-style:none] [scrollbar-width:none]"
+              onMouseDown={handleMouseDown}
+              onMouseLeave={handleMouseLeave}
+              onMouseUp={handleMouseUp}
+              onMouseMove={handleMouseMove}
+              className="flex gap-4 overflow-x-auto snap-x snap-mandatory pb-4 [&::-webkit-scrollbar]:hidden [-ms-overflow-style:none] [scrollbar-width:none] cursor-grab active:cursor-grabbing"
             >
               {/* Card 1: Level & XP */}
               <div className="w-[85%] shrink-0 snap-center bg-gradient-to-br from-blue-900/40 to-purple-900/40 rounded-3xl p-6 border border-white/10 flex flex-col justify-between aspect-[3/2]">

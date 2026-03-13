@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
-import { X, ChevronRight, ChevronLeft, Check, BookOpen, Users, Trophy, RotateCcw, ListTodo, Home } from 'lucide-react';
+import { X, ChevronRight, ChevronLeft, Check, BookOpen, Users, Trophy, RotateCcw, ListTodo, Home, Fingerprint } from 'lucide-react';
 
 interface TutorialOverlayProps {
   onClose: () => void;
@@ -74,6 +74,20 @@ const TUTORIAL_STEPS = [
           <li><strong>Takipleşme:</strong> Diğer kullanıcıları arayıp takip ederek onların ilerlemelerini görebilirsiniz.</li>
           <li><strong>Liderlik Tablosu:</strong> "Diğer" menüsü altındaki sıralama kısmından topluluktaki yerinizi görün.</li>
           <li><strong>Seri (Streak):</strong> Her gün okuma yaparak serinizi bozmadan devam ettirin.</li>
+        </ul>
+      </div>
+    )
+  },
+  {
+    title: "Güvenlik ve Biyometrik Giriş",
+    icon: <Fingerprint size={48} className="text-sage-500" />,
+    content: (
+      <div className="space-y-4 text-left text-sm text-neutral-300">
+        <p>Hesabınızı güvende tutmak için modern güvenlik yöntemlerini kullanın.</p>
+        <ul className="list-disc pl-5 space-y-2 text-neutral-400">
+          <li><strong>Biyometrik Giriş (Passkey):</strong> Ayarlar menüsünden cihazınızın parmak izi veya yüz tanıma özelliğini ekleyerek şifresiz ve güvenli giriş yapabilirsiniz.</li>
+          <li><strong>İki Faktörlü Doğrulama (2FA):</strong> Hesabınızı ek bir güvenlik katmanıyla koruyun.</li>
+          <li><strong>Hesap Bağlantıları:</strong> Google, GitHub veya Microsoft hesaplarınızı bağlayarak tek tıkla giriş yapabilirsiniz.</li>
         </ul>
       </div>
     )
