@@ -2232,249 +2232,326 @@ function AppContent() {
             initial={{ opacity: 0, scale: 0.95 }}
             animate={{ opacity: 1, scale: 1 }}
             transition={{ duration: 0.6, ease: "easeOut" }}
-            className="min-h-screen"
+            className="min-h-screen flex flex-col md:flex-row"
           >
-            <AnimatePresence>
-              {showTutorial && (
-                <Suspense fallback={null}>
-                  <LazyTutorialOverlay onClose={handleCloseTutorial} />
-                </Suspense>
-              )}
-            </AnimatePresence>
-
-            {/* Header */}
-            <header className="bg-white dark:bg-neutral-900 border-b border-sage-200 dark:border-neutral-800 px-6 py-4 sticky top-0 z-30">
-              <div className="max-w-2xl mx-auto flex justify-between items-center">
+            {/* Desktop Sidebar */}
+            <aside className="hidden md:flex flex-col w-64 border-r border-sage-200 dark:border-neutral-800 bg-white dark:bg-neutral-900 h-screen sticky top-0 overflow-y-auto shrink-0 z-40">
+              <div className="p-6 border-b border-sage-200 dark:border-neutral-800 flex items-center justify-between">
                 <h1 className="display text-2xl font-bold text-sage-800 dark:text-white tracking-tight flex items-center gap-2">
                   <img src="/favicon.svg" alt="HatimPro Logo" className="w-8 h-8" referrerPolicy="no-referrer" />
                   HatimPro
                 </h1>
-                <div className="flex items-center gap-2">
+              </div>
+              <nav className="flex-1 p-4 space-y-2">
+                <button onClick={() => setActiveView('home')} className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl transition-colors ${activeView === 'home' ? 'bg-sage-100 dark:bg-neutral-800 text-sage-800 dark:text-white font-bold' : 'text-sage-600 dark:text-neutral-400 hover:bg-sage-50 dark:hover:bg-neutral-800/50'}`}>
+                  <Home size={20} strokeWidth={activeView === 'home' ? 2.5 : 2} />
+                  Ana Sayfa
+                </button>
+                <button onClick={() => handleProtectedAction(() => setActiveView('tasks'))} className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl transition-colors ${activeView === 'tasks' ? 'bg-sage-100 dark:bg-neutral-800 text-sage-800 dark:text-white font-bold' : 'text-sage-600 dark:text-neutral-400 hover:bg-sage-50 dark:hover:bg-neutral-800/50'}`}>
+                  <ListTodo size={20} strokeWidth={activeView === 'tasks' ? 2.5 : 2} />
+                  Görevler
+                </button>
+                <button onClick={() => setActiveView('zikir')} className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl transition-colors ${activeView === 'zikir' ? 'bg-sage-100 dark:bg-neutral-800 text-sage-800 dark:text-white font-bold' : 'text-sage-600 dark:text-neutral-400 hover:bg-sage-50 dark:hover:bg-neutral-800/50'}`}>
+                  <RotateCcw size={20} strokeWidth={activeView === 'zikir' ? 2.5 : 2} />
+                  Zikir
+                </button>
+                <button onClick={() => handleProtectedAction(() => setActiveView('hatim-rooms'))} className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl transition-colors ${activeView === 'hatim-rooms' ? 'bg-sage-100 dark:bg-neutral-800 text-sage-800 dark:text-white font-bold' : 'text-sage-600 dark:text-neutral-400 hover:bg-sage-50 dark:hover:bg-neutral-800/50'}`}>
+                  <Book size={20} strokeWidth={activeView === 'hatim-rooms' ? 2.5 : 2} />
+                  Hatim Odaları
+                </button>
+                <button onClick={() => { setProfileUsername(undefined); setActiveView('profile'); }} className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl transition-colors ${activeView === 'profile' ? 'bg-sage-100 dark:bg-neutral-800 text-sage-800 dark:text-white font-bold' : 'text-sage-600 dark:text-neutral-400 hover:bg-sage-50 dark:hover:bg-neutral-800/50'}`}>
+                  <User size={20} strokeWidth={activeView === 'profile' ? 2.5 : 2} />
+                  Profil
+                </button>
+                <button onClick={() => handleProtectedAction(() => setActiveView('more'))} className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl transition-colors ${activeView === 'more' ? 'bg-sage-100 dark:bg-neutral-800 text-sage-800 dark:text-white font-bold' : 'text-sage-600 dark:text-neutral-400 hover:bg-sage-50 dark:hover:bg-neutral-800/50'}`}>
+                  <MoreHorizontal size={20} strokeWidth={activeView === 'more' ? 2.5 : 2} />
+                  Diğer
+                </button>
+              </nav>
+              <div className="p-4 border-t border-sage-200 dark:border-neutral-800">
+                <div className="flex items-center gap-2 justify-center">
                   {!user && (
                     <button 
-                      onClick={() => { playClick(); setIsAuthModalOpen(true); }}
-                      className="text-xs font-bold bg-black text-white px-3 py-2 rounded-xl hover:bg-neutral-800 transition-colors"
+                      onClick={() => { setIsAuthModalOpen(true); }}
+                      className="text-xs font-bold bg-black text-white px-3 py-2 rounded-xl hover:bg-neutral-800 transition-colors w-full"
                     >
                       Giriş Yap
                     </button>
                   )}
                   <button 
-                    onClick={() => { playClick(); setShowTutorial(true); }}
-                    className="relative p-2 text-sage-600 dark:text-sage-400 hover:bg-sage-100 dark:hover:bg-neutral-800 rounded-full transition-colors"
+                    onClick={() => { setShowTutorial(true); }}
+                    className="relative p-2 text-white bg-sage-500 hover:bg-sage-600 dark:bg-neutral-800 dark:hover:bg-neutral-700 rounded-full transition-colors"
                   >
-                    <HelpCircle size={24} />
+                    <HelpCircle size={20} />
                   </button>
                   <button 
-                    onClick={() => { playClick(); setIsNotificationsOpen(true); }}
-                    className="relative p-2 text-sage-600 dark:text-sage-400 hover:bg-sage-100 dark:hover:bg-neutral-800 rounded-full transition-colors"
+                    onClick={() => { setIsNotificationsOpen(true); }}
+                    className="relative p-2 text-white bg-sage-500 hover:bg-sage-600 dark:bg-neutral-800 dark:hover:bg-neutral-700 rounded-full transition-colors"
                   >
-                    <Bell size={24} />
+                    <Bell size={20} />
                     {unreadNotifications > 0 && (
-                      <span className="absolute top-1 right-1 w-2.5 h-2.5 bg-red-500 rounded-full border-2 border-white dark:border-neutral-900"></span>
+                      <span className="absolute top-0 right-0 w-2.5 h-2.5 bg-red-500 rounded-full border-2 border-white dark:border-neutral-900"></span>
                     )}
                   </button>
                 </div>
               </div>
-            </header>
+            </aside>
 
-            <main className="max-w-2xl mx-auto px-6 pt-8">
-              {activeView === 'home' && renderHome()}
-              {activeView === 'more' && (
-                <div className="flex flex-col gap-4 p-4">
-                  <div className="flex items-center justify-between mb-2">
-                    <h1 className="text-xl font-bold text-sage-800 dark:text-white">Diğer</h1>
-                    <button onClick={() => { playClick(); setActiveView('home'); }} className="text-sage-500 hover:text-sage-800 dark:text-sage-400 dark:hover:text-white">
-                      <X size={24} />
+            <div className="flex-1 flex flex-col min-w-0 pb-20 md:pb-0 relative">
+              <AnimatePresence>
+                {showTutorial && (
+                  <Suspense fallback={null}>
+                    <LazyTutorialOverlay onClose={handleCloseTutorial} />
+                  </Suspense>
+                )}
+              </AnimatePresence>
+
+              {/* Header (Mobile Only) */}
+              <header className="md:hidden bg-white dark:bg-neutral-900 border-b border-sage-200 dark:border-neutral-800 px-6 py-4 sticky top-0 z-30">
+                <div className="max-w-2xl mx-auto flex justify-between items-center">
+                  <h1 className="display text-2xl font-bold text-sage-800 dark:text-white tracking-tight flex items-center gap-2">
+                    <img src="/favicon.svg" alt="HatimPro Logo" className="w-8 h-8" referrerPolicy="no-referrer" />
+                    HatimPro
+                  </h1>
+                  <div className="flex items-center gap-2">
+                    {!user && (
+                      <button 
+                        onClick={() => { playClick(); setIsAuthModalOpen(true); }}
+                        className="text-xs font-bold bg-black text-white px-3 py-2 rounded-xl hover:bg-neutral-800 transition-colors"
+                      >
+                        Giriş Yap
+                      </button>
+                    )}
+                    <button 
+                      onClick={() => { playClick(); setShowTutorial(true); }}
+                      className="relative p-2 text-white bg-sage-500 hover:bg-sage-600 dark:bg-neutral-800 dark:hover:bg-neutral-700 rounded-full transition-colors"
+                    >
+                      <HelpCircle size={24} />
+                    </button>
+                    <button 
+                      onClick={() => { playClick(); setIsNotificationsOpen(true); }}
+                      className="relative p-2 text-white bg-sage-500 hover:bg-sage-600 dark:bg-neutral-800 dark:hover:bg-neutral-700 rounded-full transition-colors"
+                    >
+                      <Bell size={24} />
+                      {unreadNotifications > 0 && (
+                        <span className="absolute top-1 right-1 w-2.5 h-2.5 bg-red-500 rounded-full border-2 border-white dark:border-neutral-900"></span>
+                      )}
                     </button>
                   </div>
-                  <button 
-                    onClick={() => { playClick(); setActiveView('leaderboard'); }} 
-                    className="flex items-center gap-4 p-4 bg-white dark:bg-neutral-900 rounded-2xl border border-sage-100 dark:border-neutral-800 shadow-sm hover:bg-sage-50 dark:hover:bg-neutral-800 transition-colors"
-                  >
-                    <Trophy className="text-sage-600 dark:text-white" size={24} />
-                    <span className="font-bold text-sage-800 dark:text-white">Liderlik Tablosu</span>
-                  </button>
-                  <button 
-                    onClick={() => { playClick(); setActiveView('stats'); }} 
-                    className="flex items-center gap-4 p-4 bg-white dark:bg-neutral-900 rounded-2xl border border-sage-100 dark:border-neutral-800 shadow-sm hover:bg-sage-50 dark:hover:bg-neutral-800 transition-colors"
-                  >
-                    <BarChart2 className="text-sage-600 dark:text-white" size={24} />
-                    <span className="font-bold text-sage-800 dark:text-white">İstatistikler</span>
-                  </button>
-                  <button 
-                    onClick={() => { playClick(); setActiveView('settings'); }} 
-                    className="flex items-center gap-4 p-4 bg-white dark:bg-neutral-900 rounded-2xl border border-sage-100 dark:border-neutral-800 shadow-sm hover:bg-sage-50 dark:hover:bg-neutral-800 transition-colors"
-                  >
-                    <Settings className="text-sage-600 dark:text-white" size={24} />
-                    <span className="font-bold text-sage-800 dark:text-white">Ayarlar</span>
-                  </button>
                 </div>
-              )}
-              {activeView === 'tasks' && renderTasks()}
-              {activeView === 'history' && renderHistory()}
-              {activeView === 'settings' && renderSettings()}
-              {activeView === 'profile' && (
-                <div className="fixed inset-0 z-50 bg-black overflow-y-auto">
-                  <Suspense fallback={<div className="flex h-full items-center justify-center"><div className="w-8 h-8 border-4 border-white border-t-transparent rounded-full animate-spin"></div></div>}>
-                    <LazyProfilePage 
-                      username={profileUsername} 
-                      onBack={() => {
-                        setActiveView('more');
-                        
-                      }} 
-                      playClick={playClick} 
-                    />
-                  </Suspense>
-                </div>
-              )}
-              {activeView === 'leaderboard' && (
-                <div className="fixed inset-0 z-50 bg-black overflow-y-auto">
-                  <Suspense fallback={<div className="flex h-full items-center justify-center"><div className="w-8 h-8 border-4 border-white border-t-transparent rounded-full animate-spin"></div></div>}>
-                    <LazyLeaderboardPage 
-                      onBack={() => {
-                        playClick();
-                        setActiveView('more');
-                      }} 
-                      playClick={playClick} 
-                    />
-                  </Suspense>
-                </div>
-              )}
-              {activeView === 'stats' && (
-                <div className="fixed inset-0 z-50 bg-black overflow-y-auto">
-                  <Suspense fallback={<div className="flex h-full items-center justify-center"><div className="w-8 h-8 border-4 border-white border-t-transparent rounded-full animate-spin"></div></div>}>
-                    <LazyStatsPage 
-                      data={data}
-                      onBack={() => {
-                        playClick();
-                        setActiveView('more');
-                      }} 
-                      playClick={playClick} 
-                    />
-                  </Suspense>
-                </div>
-              )}
-              {activeView === 'zikir' && (
-                <div className="fixed inset-0 z-50 bg-black">
-                  <Suspense fallback={<div className="flex h-full items-center justify-center"><div className="w-8 h-8 border-4 border-white border-t-transparent rounded-full animate-spin"></div></div>}>
-                    <LazyZikirPage 
-                      onBack={() => {
-                        setActiveView('home');
-                        setZikirJoinSessionId(null);
-                      }} 
-                      playClick={playClick} 
-                      joinSessionId={zikirJoinSessionId}
-                    />
-                  </Suspense>
-                </div>
-              )}
-              {activeView === 'hatim-rooms' && (
-                <div className="fixed inset-0 z-50 bg-black">
-                  <Suspense fallback={<div className="flex h-full items-center justify-center"><div className="w-8 h-8 border-4 border-white border-t-transparent rounded-full animate-spin"></div></div>}>
-                    <LazyHatimRoomsPage 
-                      onBack={() => {
-                        setActiveView('home');
-                        setHatimJoinSessionId(null);
-                      }} 
-                      playClick={playClick} 
-                      joinSessionId={hatimJoinSessionId}
-                    />
-                  </Suspense>
-                </div>
-              )}
-              {activeView === 'privacy' && (
-                <div className="fixed inset-0 z-50 bg-sage-50 dark:bg-black overflow-y-auto">
-                  <Suspense fallback={<div className="min-h-screen flex items-center justify-center"><div className="w-8 h-8 border-4 border-sage-500 border-t-transparent rounded-full animate-spin"></div></div>}>
-                    <LazyLegalPage 
-                      type="privacy" 
-                      onBack={() => {
-                        setActiveView('settings');
-                        
-                      }} 
-                    />
-                  </Suspense>
-                </div>
-              )}
-              {activeView === 'terms' && (
-                <div className="fixed inset-0 z-50 bg-sage-50 dark:bg-black overflow-y-auto">
-                  <Suspense fallback={<div className="min-h-screen flex items-center justify-center"><div className="w-8 h-8 border-4 border-sage-500 border-t-transparent rounded-full animate-spin"></div></div>}>
-                    <LazyLegalPage 
-                      type="terms" 
-                      onBack={() => {
-                        setActiveView('settings');
-                        
-                      }} 
-                    />
-                  </Suspense>
-                </div>
-              )}
-              {activeView === 'data-deletion' && (
-                <div className="fixed inset-0 z-50 bg-sage-50 dark:bg-black overflow-y-auto">
-                  <Suspense fallback={<div className="min-h-screen flex items-center justify-center"><div className="w-8 h-8 border-4 border-sage-500 border-t-transparent rounded-full animate-spin"></div></div>}>
-                    <LazyDataDeletionPage 
-                      onBack={() => {
-                        setActiveView('settings');
-                        
-                      }} 
-                    />
-                  </Suspense>
-                </div>
-              )}
-            </main>
+              </header>
 
-            {/* Bottom Navbar */}
-            {(activeView as any) !== 'zikir' && (activeView as any) !== 'profile' && (
-              <nav className="fixed bottom-0 left-0 right-0 bg-white dark:bg-black border-t border-sage-200 dark:border-white/10 px-4 py-3 pb-5 z-40">
-                <div className="max-w-md mx-auto flex justify-between items-center">
-                  <button 
-                    onClick={() => { playClick(); setActiveView('home'); }}
-                    className={`flex flex-col items-center gap-1 transition-colors ${activeView === 'home' ? 'text-sage-800 dark:text-white' : 'text-sage-400 dark:text-neutral-400'}`}
-                  >
-                    <Home size={22} strokeWidth={activeView === 'home' ? 2.5 : 2} />
-                    <span className="text-[10px] font-medium hidden sm:block">Ana Sayfa</span>
-                  </button>
-                  <button 
-                    onClick={() => handleProtectedAction(() => { playClick(); setActiveView('tasks'); })}
-                    className={`flex flex-col items-center gap-1 transition-colors ${activeView === 'tasks' ? 'text-sage-800 dark:text-white' : 'text-sage-400 dark:text-neutral-500'}`}
-                  >
-                    <ListTodo size={22} strokeWidth={activeView === 'tasks' ? 2.5 : 2} />
-                    <span className="text-[10px] font-medium hidden sm:block">Görevler</span>
-                  </button>
-                  <button 
-                    onClick={() => { playClick(); setActiveView('zikir'); }}
-                    className={`flex flex-col items-center gap-1 transition-colors ${activeView === 'zikir' ? 'text-sage-800 dark:text-white' : 'text-sage-400 dark:text-neutral-500'}`}
-                  >
-                    <RotateCcw size={22} strokeWidth={activeView === 'zikir' ? 2.5 : 2} />
-                    <span className="text-[10px] font-medium hidden sm:block">Zikir</span>
-                  </button>
-                  <button 
-                    onClick={() => handleProtectedAction(() => { playClick(); setActiveView('hatim-rooms'); })}
-                    className={`flex flex-col items-center gap-1 transition-colors ${activeView === 'hatim-rooms' ? 'text-sage-800 dark:text-white' : 'text-sage-400 dark:text-neutral-500'}`}
-                  >
-                    <Book size={22} strokeWidth={activeView === 'hatim-rooms' ? 2.5 : 2} />
-                    <span className="text-[10px] font-medium hidden sm:block">Hatim</span>
-                  </button>
-                  <button 
-                    onClick={() => { 
-                      playClick(); 
-                      setProfileUsername(undefined);
-                      setActiveView('profile'); 
-                    }}
-                    className={`flex flex-col items-center gap-1 transition-colors ${activeView === 'profile' ? 'text-sage-800 dark:text-white' : 'text-sage-400 dark:text-neutral-500'}`}
-                  >
-                    <User size={22} strokeWidth={activeView === 'profile' ? 2.5 : 2} />
-                    <span className="text-[10px] font-medium hidden sm:block">Profil</span>
-                  </button>
-                  <button 
-                    onClick={() => handleProtectedAction(() => { playClick(); setActiveView('more'); })}
-                    className={`flex flex-col items-center gap-1 transition-colors ${activeView === 'more' ? 'text-sage-800 dark:text-white' : 'text-sage-400 dark:text-neutral-500'}`}
-                  >
-                    <MoreHorizontal size={22} strokeWidth={activeView === 'more' ? 2.5 : 2} />
-                    <span className="text-[10px] font-medium hidden sm:block">Diğer</span>
-                  </button>
-                </div>
-              </nav>
-            )}
+              <main className="max-w-2xl mx-auto px-6 pt-8 w-full">
+                {activeView === 'home' && renderHome()}
+                {activeView === 'more' && (
+                  <div className="flex flex-col gap-4 p-4">
+                    <div className="flex items-center justify-between mb-2">
+                      <h1 className="text-xl font-bold text-sage-800 dark:text-white">Diğer</h1>
+                      <button onClick={() => { playClick(); setActiveView('home'); }} className="text-sage-500 hover:text-sage-800 dark:text-sage-400 dark:hover:text-white">
+                        <X size={24} />
+                      </button>
+                    </div>
+                    <button 
+                      onClick={() => { playClick(); setActiveView('leaderboard'); }} 
+                      className="flex items-center gap-4 p-4 bg-white dark:bg-neutral-900 rounded-2xl border border-sage-100 dark:border-neutral-800 shadow-sm hover:bg-sage-50 dark:hover:bg-neutral-800 transition-colors"
+                    >
+                      <Trophy className="text-sage-600 dark:text-white" size={24} />
+                      <span className="font-bold text-sage-800 dark:text-white">Liderlik Tablosu</span>
+                    </button>
+                    <button 
+                      onClick={() => { playClick(); setActiveView('stats'); }} 
+                      className="flex items-center gap-4 p-4 bg-white dark:bg-neutral-900 rounded-2xl border border-sage-100 dark:border-neutral-800 shadow-sm hover:bg-sage-50 dark:hover:bg-neutral-800 transition-colors"
+                    >
+                      <BarChart2 className="text-sage-600 dark:text-white" size={24} />
+                      <span className="font-bold text-sage-800 dark:text-white">İstatistikler</span>
+                    </button>
+                    <button 
+                      onClick={() => { playClick(); setActiveView('settings'); }} 
+                      className="flex items-center gap-4 p-4 bg-white dark:bg-neutral-900 rounded-2xl border border-sage-100 dark:border-neutral-800 shadow-sm hover:bg-sage-50 dark:hover:bg-neutral-800 transition-colors"
+                    >
+                      <Settings className="text-sage-600 dark:text-white" size={24} />
+                      <span className="font-bold text-sage-800 dark:text-white">Ayarlar</span>
+                    </button>
+                  </div>
+                )}
+                {activeView === 'tasks' && renderTasks()}
+                {activeView === 'history' && renderHistory()}
+                {activeView === 'settings' && renderSettings()}
+                {activeView === 'profile' && (
+                  <div className="fixed inset-0 md:left-64 z-50 bg-black flex justify-center overflow-y-auto">
+                    <div className="w-full max-w-2xl min-h-full relative border-x border-neutral-900 bg-black">
+                      <Suspense fallback={<div className="flex h-full items-center justify-center"><div className="w-8 h-8 border-4 border-white border-t-transparent rounded-full animate-spin"></div></div>}>
+                        <LazyProfilePage 
+                          username={profileUsername} 
+                          onBack={() => {
+                            setActiveView('more');
+                          }} 
+                          playClick={playClick} 
+                        />
+                      </Suspense>
+                    </div>
+                  </div>
+                )}
+                {activeView === 'leaderboard' && (
+                  <div className="fixed inset-0 md:left-64 z-50 bg-black flex justify-center overflow-y-auto">
+                    <div className="w-full max-w-2xl min-h-full relative border-x border-neutral-900 bg-black">
+                      <Suspense fallback={<div className="flex h-full items-center justify-center"><div className="w-8 h-8 border-4 border-white border-t-transparent rounded-full animate-spin"></div></div>}>
+                        <LazyLeaderboardPage 
+                          onBack={() => {
+                            playClick();
+                            setActiveView('more');
+                          }} 
+                          playClick={playClick} 
+                        />
+                      </Suspense>
+                    </div>
+                  </div>
+                )}
+                {activeView === 'stats' && (
+                  <div className="fixed inset-0 md:left-64 z-50 bg-black flex justify-center overflow-y-auto">
+                    <div className="w-full max-w-2xl min-h-full relative border-x border-neutral-900 bg-black">
+                      <Suspense fallback={<div className="flex h-full items-center justify-center"><div className="w-8 h-8 border-4 border-white border-t-transparent rounded-full animate-spin"></div></div>}>
+                        <LazyStatsPage 
+                          data={data}
+                          onBack={() => {
+                            playClick();
+                            setActiveView('more');
+                          }} 
+                          playClick={playClick} 
+                        />
+                      </Suspense>
+                    </div>
+                  </div>
+                )}
+                {activeView === 'zikir' && (
+                  <div className="fixed inset-0 md:left-64 z-50 bg-black flex justify-center">
+                    <div className="w-full max-w-2xl h-full relative border-x border-neutral-900 bg-black">
+                      <Suspense fallback={<div className="flex h-full items-center justify-center"><div className="w-8 h-8 border-4 border-white border-t-transparent rounded-full animate-spin"></div></div>}>
+                        <LazyZikirPage 
+                          onBack={() => {
+                            setActiveView('home');
+                            setZikirJoinSessionId(null);
+                          }} 
+                          playClick={playClick} 
+                          joinSessionId={zikirJoinSessionId}
+                        />
+                      </Suspense>
+                    </div>
+                  </div>
+                )}
+                {activeView === 'hatim-rooms' && (
+                  <div className="fixed inset-0 md:left-64 z-50 bg-black flex justify-center">
+                    <div className="w-full max-w-2xl h-full relative border-x border-neutral-900 bg-black">
+                      <Suspense fallback={<div className="flex h-full items-center justify-center"><div className="w-8 h-8 border-4 border-white border-t-transparent rounded-full animate-spin"></div></div>}>
+                        <LazyHatimRoomsPage 
+                          onBack={() => {
+                            setActiveView('home');
+                            setHatimJoinSessionId(null);
+                          }} 
+                          playClick={playClick} 
+                          joinSessionId={hatimJoinSessionId}
+                        />
+                      </Suspense>
+                    </div>
+                  </div>
+                )}
+                {activeView === 'privacy' && (
+                  <div className="fixed inset-0 md:left-64 z-50 bg-sage-50 dark:bg-black flex justify-center overflow-y-auto">
+                    <div className="w-full max-w-2xl min-h-full relative border-x border-sage-200 dark:border-neutral-900 bg-sage-50 dark:bg-black">
+                      <Suspense fallback={<div className="min-h-screen flex items-center justify-center"><div className="w-8 h-8 border-4 border-sage-500 border-t-transparent rounded-full animate-spin"></div></div>}>
+                        <LazyLegalPage 
+                          type="privacy" 
+                          onBack={() => {
+                            setActiveView('settings');
+                          }} 
+                        />
+                      </Suspense>
+                    </div>
+                  </div>
+                )}
+                {activeView === 'terms' && (
+                  <div className="fixed inset-0 md:left-64 z-50 bg-sage-50 dark:bg-black flex justify-center overflow-y-auto">
+                    <div className="w-full max-w-2xl min-h-full relative border-x border-sage-200 dark:border-neutral-900 bg-sage-50 dark:bg-black">
+                      <Suspense fallback={<div className="min-h-screen flex items-center justify-center"><div className="w-8 h-8 border-4 border-sage-500 border-t-transparent rounded-full animate-spin"></div></div>}>
+                        <LazyLegalPage 
+                          type="terms" 
+                          onBack={() => {
+                            setActiveView('settings');
+                          }} 
+                        />
+                      </Suspense>
+                    </div>
+                  </div>
+                )}
+                {activeView === 'data-deletion' && (
+                  <div className="fixed inset-0 md:left-64 z-50 bg-sage-50 dark:bg-black flex justify-center overflow-y-auto">
+                    <div className="w-full max-w-2xl min-h-full relative border-x border-sage-200 dark:border-neutral-900 bg-sage-50 dark:bg-black">
+                      <Suspense fallback={<div className="min-h-screen flex items-center justify-center"><div className="w-8 h-8 border-4 border-sage-500 border-t-transparent rounded-full animate-spin"></div></div>}>
+                        <LazyDataDeletionPage 
+                          onBack={() => {
+                            setActiveView('settings');
+                          }} 
+                        />
+                      </Suspense>
+                    </div>
+                  </div>
+                )}
+              </main>
+
+              {/* Bottom Navbar (Mobile Only) */}
+              {(activeView as any) !== 'zikir' && (activeView as any) !== 'profile' && (
+                <nav className="md:hidden fixed bottom-0 left-0 right-0 bg-white dark:bg-black border-t border-sage-200 dark:border-white/10 px-4 py-3 pb-5 z-40">
+                  <div className="max-w-md mx-auto flex justify-between items-center">
+                    <button 
+                      onClick={() => { playClick(); setActiveView('home'); }}
+                      className={`flex flex-col items-center gap-1 transition-colors ${activeView === 'home' ? 'text-sage-800 dark:text-white' : 'text-sage-400 dark:text-neutral-400'}`}
+                    >
+                      <Home size={22} strokeWidth={activeView === 'home' ? 2.5 : 2} />
+                      <span className="text-[10px] font-medium hidden sm:block">Ana Sayfa</span>
+                    </button>
+                    <button 
+                      onClick={() => handleProtectedAction(() => { playClick(); setActiveView('tasks'); })}
+                      className={`flex flex-col items-center gap-1 transition-colors ${activeView === 'tasks' ? 'text-sage-800 dark:text-white' : 'text-sage-400 dark:text-neutral-500'}`}
+                    >
+                      <ListTodo size={22} strokeWidth={activeView === 'tasks' ? 2.5 : 2} />
+                      <span className="text-[10px] font-medium hidden sm:block">Görevler</span>
+                    </button>
+                    <button 
+                      onClick={() => { playClick(); setActiveView('zikir'); }}
+                      className={`flex flex-col items-center gap-1 transition-colors ${activeView === 'zikir' ? 'text-sage-800 dark:text-white' : 'text-sage-400 dark:text-neutral-500'}`}
+                    >
+                      <RotateCcw size={22} strokeWidth={activeView === 'zikir' ? 2.5 : 2} />
+                      <span className="text-[10px] font-medium hidden sm:block">Zikir</span>
+                    </button>
+                    <button 
+                      onClick={() => handleProtectedAction(() => { playClick(); setActiveView('hatim-rooms'); })}
+                      className={`flex flex-col items-center gap-1 transition-colors ${activeView === 'hatim-rooms' ? 'text-sage-800 dark:text-white' : 'text-sage-400 dark:text-neutral-500'}`}
+                    >
+                      <Book size={22} strokeWidth={activeView === 'hatim-rooms' ? 2.5 : 2} />
+                      <span className="text-[10px] font-medium hidden sm:block">Hatim</span>
+                    </button>
+                    <button 
+                      onClick={() => { 
+                        playClick(); 
+                        setProfileUsername(undefined);
+                        setActiveView('profile'); 
+                      }}
+                      className={`flex flex-col items-center gap-1 transition-colors ${activeView === 'profile' ? 'text-sage-800 dark:text-white' : 'text-sage-400 dark:text-neutral-500'}`}
+                    >
+                      <User size={22} strokeWidth={activeView === 'profile' ? 2.5 : 2} />
+                      <span className="text-[10px] font-medium hidden sm:block">Profil</span>
+                    </button>
+                    <button 
+                      onClick={() => handleProtectedAction(() => { playClick(); setActiveView('more'); })}
+                      className={`flex flex-col items-center gap-1 transition-colors ${activeView === 'more' ? 'text-sage-800 dark:text-white' : 'text-sage-400 dark:text-neutral-500'}`}
+                    >
+                      <MoreHorizontal size={22} strokeWidth={activeView === 'more' ? 2.5 : 2} />
+                      <span className="text-[10px] font-medium hidden sm:block">Diğer</span>
+                    </button>
+                  </div>
+                </nav>
+              )}
+            </div>
           </motion.div>
         )}
       </AnimatePresence>
