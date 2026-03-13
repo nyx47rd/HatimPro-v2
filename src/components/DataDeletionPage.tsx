@@ -23,7 +23,7 @@ export function DataDeletionPage({ onBack }: DataDeletionPageProps) {
             <ArrowLeft size={24} />
           </button>
           <div className="flex items-center gap-2 text-sage-800 dark:text-white font-bold text-lg">
-            <Trash2 size={20} className="text-sage-500" />
+            <Trash2 size={20} className="text-sage-600" />
             <h1>Veri Silme Talimatları</h1>
           </div>
         </div>

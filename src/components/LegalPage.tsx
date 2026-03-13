@@ -28,7 +28,7 @@ export function LegalPage({ type, onBack }: LegalPageProps) {
             <ArrowLeft size={24} />
           </button>
           <div className="flex items-center gap-2 text-sage-800 dark:text-white font-bold text-lg">
-            <Icon size={20} className="text-sage-500" />
+            <Icon size={20} className="text-sage-600" />
             <h1>{title}</h1>
           </div>
         </div>
@@ -54,7 +54,7 @@ export function LegalPage({ type, onBack }: LegalPageProps) {
                 <h3 className="text-xl font-bold text-sage-900 dark:text-white mb-4">5. İletişim</h3>
                 <p className="mb-6 leading-relaxed">Gizlilik politikamızla ilgili sorularınız için hatimpro.app@gmail.com adresinden bizimle iletişime geçebilirsiniz.</p>
                 
-                <div className="mt-12 pt-6 border-t border-sage-100 dark:border-neutral-800 text-sm text-sage-500">
+                <div className="mt-12 pt-6 border-t border-sage-100 dark:border-neutral-800 text-sm text-sage-600">
                   Son Güncelleme: 7 Mart 2026
                 </div>
               </>

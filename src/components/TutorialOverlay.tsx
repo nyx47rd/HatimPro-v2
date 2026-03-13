@@ -80,7 +80,7 @@ const TUTORIAL_STEPS = [
   },
   {
     title: "Güvenlik ve Biyometrik Giriş",
-    icon: <Fingerprint size={48} className="text-sage-500" />,
+    icon: <Fingerprint size={48} className="text-sage-600" />,
     content: (
       <div className="space-y-4 text-left text-sm text-neutral-300">
         <p>Hesabınızı güvende tutmak için modern güvenlik yöntemlerini kullanın.</p>

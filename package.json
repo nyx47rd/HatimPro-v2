@@ -11,9 +11,13 @@
     "lint": "tsc --noEmit"
   },
   "dependencies": {
+    "@fontsource/amiri-quran": "^5.2.10",
+    "@fontsource/cormorant-garamond": "^5.2.11",
+    "@fontsource/inter": "^5.2.8",
+    "@fontsource/libre-baskerville": "^5.2.10",
+    "@fontsource/scheherazade-new": "^5.2.8",
     "@google/genai": "^1.29.0",
     "@tailwindcss/vite": "^4.1.14",
-    "@vercel/analytics": "^2.0.0",
     "@vitejs/plugin-react": "^5.0.4",
     "better-sqlite3": "^12.4.1",
     "canvas-confetti": "^1.9.4",

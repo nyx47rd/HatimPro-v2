@@ -544,7 +544,7 @@ export const ProfilePage: React.FC<ProfilePageProps> = ({ username, onBack, play
         {/* Reading Chart */}
         <div className="bg-white/5 rounded-3xl p-6 border border-white/10 mb-8">
           <h3 className="text-lg font-bold mb-6 flex items-center gap-2">
-            <TrendingUp size={20} className="text-sage-500" />
+            <TrendingUp size={20} className="text-sage-600" />
             Son 7 Gün Okuma
           </h3>
           <div className="h-64 w-full">

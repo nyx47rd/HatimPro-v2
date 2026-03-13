@@ -559,10 +559,10 @@ function AppContent() {
   };
 
   // Sounds
-  const [playClick] = useSound(SOUNDS.click, { soundEnabled: isSoundEnabled, volume: 0.5 });
-  const [playSuccess] = useSound(SOUNDS.success, { soundEnabled: isSoundEnabled, volume: 0.5 });
-  const [playDelete] = useSound(SOUNDS.delete, { soundEnabled: isSoundEnabled, volume: 0.5 });
-  const [playOpen] = useSound(SOUNDS.open, { soundEnabled: isSoundEnabled, volume: 0.5 });
+  const [playClick] = useSound(SOUNDS.click, { soundEnabled: isSoundEnabled, volume: 0.5, preload: false });
+  const [playSuccess] = useSound(SOUNDS.success, { soundEnabled: isSoundEnabled, volume: 0.5, preload: false });
+  const [playDelete] = useSound(SOUNDS.delete, { soundEnabled: isSoundEnabled, volume: 0.5, preload: false });
+  const [playOpen] = useSound(SOUNDS.open, { soundEnabled: isSoundEnabled, volume: 0.5, preload: false });
   
   // Form States
   const [newPageInput, setNewPageInput] = useState<string>('');
@@ -1261,13 +1261,13 @@ function AppContent() {
         
         <div className="flex justify-between items-end mb-6">
           <div>
-            <span className="text-sm font-semibold uppercase tracking-wider text-sage-500 dark:text-white">İlerleme</span>
+            <span className="text-sm font-semibold uppercase tracking-wider text-sage-600 dark:text-neutral-300">İlerleme</span>
             <div className="flex items-baseline gap-2 mt-1">
               <span className="text-5xl font-bold text-sage-800 dark:text-white">{progress.toFixed(1)}%</span>
             </div>
           </div>
           <div className="text-right">
-            <span className="text-sm font-semibold uppercase tracking-wider text-sage-500 dark:text-white">Mevcut Sayfa</span>
+            <span className="text-sm font-semibold uppercase tracking-wider text-sage-600 dark:text-neutral-300">Mevcut Sayfa</span>
             <div className="text-2xl font-bold text-sage-700 dark:text-white">
               {activeTask.currentPage || activeTask.startPage} <span className="text-sage-300 font-normal">/</span> {activeTask.endPage}
             </div>
@@ -1289,7 +1289,7 @@ function AppContent() {
               <TrendingUp size={20} />
             </div>
             <div>
-              <p className="text-xs text-sage-500 dark:text-white font-semibold uppercase tracking-tighter">Kalan</p>
+              <p className="text-xs text-sage-600 dark:text-neutral-300 font-semibold uppercase tracking-tighter">Kalan</p>
               <p className="text-lg font-bold text-sage-800 dark:text-white">{Math.max(0, totalPagesInRange - pagesReadInRange)}</p>
             </div>
           </div>
@@ -1298,7 +1298,7 @@ function AppContent() {
               <CheckCircle2 size={20} />
             </div>
             <div>
-              <p className="text-xs text-sage-500 dark:text-white font-semibold uppercase tracking-tighter">Okunan</p>
+              <p className="text-xs text-sage-600 dark:text-neutral-300 font-semibold uppercase tracking-tighter">Okunan</p>
               <p className="text-lg font-bold text-sage-800 dark:text-white">{pagesReadInRange}</p>
             </div>
           </div>
@@ -1349,7 +1349,7 @@ function AppContent() {
               <Mic size={20} />
               Sesli Kur'an Oku
             </button>
-            <p className="text-[10px] text-sage-400 dark:text-neutral-500 text-center px-4">
+            <p className="text-[10px] text-sage-600 dark:text-neutral-400 text-center px-4">
               💡 Bugünün kaydı için <strong>Okumaya Başla</strong> butonunu kullanın. <br />
               <strong>+</strong> butonu sadece geçmiş günler için kayıt yapmanızı sağlar.
             </p>
@@ -1361,10 +1361,10 @@ function AppContent() {
       <section className="space-y-4">
         <div className="flex items-center justify-between px-2">
           <div className="flex items-center gap-2">
-            <HistoryIcon size={18} className="text-sage-500" />
+            <HistoryIcon size={18} className="text-sage-600" />
             <h2 className="text-lg font-bold text-sage-800">Son Okumalar</h2>
           </div>
-          <button onClick={() => { playClick(); setActiveView('history'); }} className="text-sage-500 text-sm font-semibold hover:underline">Tümü</button>
+          <button onClick={() => { playClick(); setActiveView('history'); }} className="text-sage-700 dark:text-sage-300 text-sm font-semibold hover:underline">Tümü</button>
         </div>
 
         <div className="space-y-3">
@@ -1378,8 +1378,8 @@ function AppContent() {
                   <p className="text-sm font-bold text-sage-800">
                     {new Date(log.date).toLocaleDateString('tr-TR', { day: 'numeric', month: 'long' })}
                   </p>
-                  <p className="text-xs text-sage-500">
-                    {log.pagesRead} sayfa • <span className="font-semibold text-sage-600">Sayfa {log.absolutePage}</span>
+                  <p className="text-xs text-sage-600 dark:text-sage-600">
+                    {log.pagesRead} sayfa • <span className="font-semibold text-sage-700 dark:text-sage-300">Sayfa {log.absolutePage}</span>
                   </p>
                 </div>
               </div>
@@ -1393,17 +1393,17 @@ function AppContent() {
           ))}
           {activeTaskLogs.length === 0 && (
             <div className="bg-white/50 dark:bg-sage-100/50 border border-dashed border-sage-300 dark:border-sage-500 rounded-2xl p-12 text-center">
-              <p className="text-sage-500 dark:text-white italic">Henüz bir kayıt bulunmuyor.</p>
+              <p className="text-sage-600 dark:text-white italic">Henüz bir kayıt bulunmuyor.</p>
             </div>
           )}
         </div>
       </section>
 
-      <footer className="pt-8 pb-4 text-center text-xs text-sage-400 dark:text-neutral-500">
+      <footer className="pt-8 pb-4 text-center text-xs text-sage-600 dark:text-neutral-400">
         <div className="flex justify-center gap-4 mb-2">
-          <a href="/privacy" onClick={(e) => { e.preventDefault(); setActiveView('privacy'); window.history.pushState({}, '', '/privacy'); }} className="hover:text-sage-600 dark:hover:text-neutral-300 transition-colors">Gizlilik Politikası</a>
+          <a href="/privacy" onClick={(e) => { e.preventDefault(); setActiveView('privacy'); window.history.pushState({}, '', '/privacy'); }} className="text-sage-600 dark:text-neutral-400 hover:text-sage-900 dark:hover:text-neutral-200 transition-colors">Gizlilik Politikası</a>
           <span>•</span>
-          <a href="/terms" onClick={(e) => { e.preventDefault(); setActiveView('terms'); window.history.pushState({}, '', '/terms'); }} className="hover:text-sage-600 dark:hover:text-neutral-300 transition-colors">Kullanım Koşulları</a>
+          <a href="/terms" onClick={(e) => { e.preventDefault(); setActiveView('terms'); window.history.pushState({}, '', '/terms'); }} className="text-sage-600 dark:text-neutral-400 hover:text-sage-900 dark:hover:text-neutral-200 transition-colors">Kullanım Koşulları</a>
         </div>
         <p>© 2026 HatimPro. Tüm hakları saklıdır.</p>
       </footer>
@@ -1540,8 +1540,8 @@ function AppContent() {
                     <p className="text-sm font-bold text-sage-800 dark:text-white">
                       {new Date(log.date).toLocaleDateString('tr-TR', { day: 'numeric', month: 'long', year: 'numeric' })}
                     </p>
-                    <p className="text-xs text-sage-500 dark:text-neutral-400">
-                      {task?.name || 'Silinmiş Görev'} • {log.pagesRead} sayfa • <span className="font-semibold text-sage-600 dark:text-neutral-300">Sayfa {log.absolutePage}</span>
+                    <p className="text-xs text-sage-600 dark:text-neutral-400">
+                      {task?.name || 'Silinmiş Görev'} • {log.pagesRead} sayfa • <span className="font-semibold text-sage-700 dark:text-neutral-300">Sayfa {log.absolutePage}</span>
                     </p>
                   </div>
                 </div>
@@ -1586,7 +1586,7 @@ function AppContent() {
                   </div>
                   <div>
                     <p className="font-bold text-sage-800 dark:text-white">Giriş Yapıldı</p>
-                    <p className="text-xs text-sage-500 dark:text-white">{user.email}</p>
+                    <p className="text-xs text-sage-600 dark:text-neutral-300">{user.email}</p>
                   </div>
                 </div>
 
@@ -1642,7 +1642,7 @@ function AppContent() {
                       </div>
                       <button
                         onClick={() => { setIsEnrolling2FA(false); setTotpSecret(null); setMfaError(null); }}
-                        className="w-full text-xs text-sage-500 hover:text-sage-700 font-medium mt-2"
+                        className="w-full text-xs text-sage-600 hover:text-sage-800 font-medium mt-2"
                       >
                         İptal Et
                       </button>
@@ -1947,7 +1947,7 @@ function AppContent() {
                       <Fingerprint size={18} />
                       Biyometrik Giriş (Passkey) Ekle
                     </button>
-                    <p className="text-xs text-sage-500 dark:text-neutral-400 text-center">
+                    <p className="text-xs text-sage-600 dark:text-neutral-400 text-center">
                       Cihazınızın parmak izi veya yüz tanıma özelliğini kullanarak şifresiz giriş yapabilirsiniz.
                     </p>
                  </div>
@@ -1968,7 +1968,7 @@ function AppContent() {
                 </div>
                 <div>
                   <p className="font-bold text-sage-800 dark:text-white">Bildirimler</p>
-                  <p className="text-xs text-sage-500 dark:text-white">Masaüstü bildirimlerini aç</p>
+                  <p className="text-xs text-sage-600 dark:text-neutral-300">Masaüstü bildirimlerini aç</p>
                 </div>
               </div>
               <button 
@@ -1990,7 +1990,7 @@ function AppContent() {
                 </div>
                 <div>
                   <p className="font-bold text-sage-800 dark:text-white">Ses Efektleri</p>
-                  <p className="text-xs text-sage-500 dark:text-white">Etkileşimlerde ses çal</p>
+                  <p className="text-xs text-sage-600 dark:text-neutral-300">Etkileşimlerde ses çal</p>
                 </div>
               </div>
               <button 
@@ -2008,7 +2008,7 @@ function AppContent() {
                 </div>
                 <div>
                   <p className="font-bold text-sage-800 dark:text-white">Açılış Ekranı</p>
-                  <p className="text-xs text-sage-500 dark:text-white">Uygulama açılırken splash göster</p>
+                  <p className="text-xs text-sage-600 dark:text-neutral-300">Uygulama açılırken splash göster</p>
                 </div>
               </div>
               <button 
@@ -2037,7 +2037,7 @@ function AppContent() {
             <div className="flex items-center justify-between p-4 bg-sage-50 dark:bg-neutral-800 rounded-2xl border border-sage-100 dark:border-neutral-700">
               <div>
                 <p className="font-bold text-sage-800 dark:text-white text-sm">Güncelleme Durumu</p>
-                <p className="text-xs text-sage-500 dark:text-neutral-400 mt-1">
+                <p className="text-xs text-sage-600 dark:text-neutral-400 mt-1">
                   {checkStatus === 'checking' ? 'Kontrol ediliyor...' :
                    checkStatus === 'available' ? <span className="text-amber-600 font-bold">Yeni sürüm mevcut!</span> :
                    checkStatus === 'up-to-date' ? <span className="text-emerald-600 font-bold">Sürümünüz güncel</span> :
@@ -2408,7 +2408,7 @@ function AppContent() {
                 <div className="max-w-md mx-auto flex justify-between items-center">
                   <button 
                     onClick={() => { playClick(); setActiveView('home'); }}
-                    className={`flex flex-col items-center gap-1 transition-colors ${activeView === 'home' ? 'text-sage-800 dark:text-white' : 'text-sage-400 dark:text-neutral-500'}`}
+                    className={`flex flex-col items-center gap-1 transition-colors ${activeView === 'home' ? 'text-sage-800 dark:text-white' : 'text-sage-400 dark:text-neutral-400'}`}
                   >
                     <Home size={22} strokeWidth={activeView === 'home' ? 2.5 : 2} />
                     <span className="text-[10px] font-medium hidden sm:block">Ana Sayfa</span>

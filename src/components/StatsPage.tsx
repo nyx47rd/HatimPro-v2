@@ -118,7 +118,7 @@ export const StatsPage: React.FC<StatsPageProps> = ({ data, onBack, playClick })
             animate={{ opacity: 1, y: 0 }}
             className="bg-white/5 rounded-3xl p-6 border border-white/10"
           >
-            <div className="flex items-center gap-3 mb-4 text-sage-500">
+            <div className="flex items-center gap-3 mb-4 text-sage-600">
               <BookOpen size={20} />
               <span className="text-xs font-bold uppercase tracking-wider">Toplam Sayfa</span>
             </div>
@@ -214,7 +214,7 @@ export const StatsPage: React.FC<StatsPageProps> = ({ data, onBack, playClick })
         {/* Weekly Distribution */}
         <div className="bg-white/5 rounded-3xl p-6 border border-white/10 mb-8">
           <h3 className="text-lg font-bold mb-6 flex items-center gap-2">
-            <BarChart2 size={20} className="text-sage-500" />
+            <BarChart2 size={20} className="text-sage-600" />
             Haftalık Dağılım
           </h3>
           <div className="h-64 w-full">

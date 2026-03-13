@@ -58,7 +58,7 @@ const encryptData = async (key: CryptoKey, data: string) => {
     key,
     encoded
   );
-  return { iv: bufferToBase64(iv), ciphertext: bufferToBase64(ciphertext) };
+  return { iv: bufferToBase64(iv.buffer), ciphertext: bufferToBase64(ciphertext) };
 };
 
 const decryptData = async (key: CryptoKey, ivBase64: string, ciphertextBase64: string) => {

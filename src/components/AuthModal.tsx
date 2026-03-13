@@ -186,7 +186,7 @@ export const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose }) => {
           >
             <button
               onClick={handleClose}
-              className="absolute top-4 right-4 p-2 text-sage-400 hover:text-sage-600 dark:text-gray-400 dark:hover:text-white hover:bg-sage-50 dark:hover:bg-neutral-800 rounded-full transition-colors z-10"
+              className="absolute top-4 right-4 p-2 text-sage-600 hover:text-sage-600 dark:text-gray-400 dark:hover:text-white hover:bg-sage-50 dark:hover:bg-neutral-800 rounded-full transition-colors z-10"
             >
               <X size={20} />
             </button>
@@ -194,11 +194,11 @@ export const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose }) => {
             <div className="p-8">
               {isResetPassword ? (
                 <>
-                  <button onClick={() => { setIsResetPassword(false); setError(null); setSuccessMsg(null); }} className="mb-4 text-sage-500 dark:text-white hover:text-sage-700 dark:hover:text-white flex items-center gap-1 text-sm font-medium">
+                  <button onClick={() => { setIsResetPassword(false); setError(null); setSuccessMsg(null); }} className="mb-4 text-sage-600 dark:text-white hover:text-sage-700 dark:hover:text-white flex items-center gap-1 text-sm font-medium">
                     <ArrowLeft size={16} /> Geri
                   </button>
                   <h2 className="text-2xl font-bold text-sage-800 dark:text-white mb-2">Şifremi Unuttum</h2>
-                  <p className="text-sage-500 dark:text-white/80 mb-6 text-sm">
+                  <p className="text-sage-600 dark:text-white/80 mb-6 text-sm">
                     E-posta adresinizi girin, size şifre sıfırlama bağlantısı gönderelim.
                   </p>
 
@@ -217,7 +217,7 @@ export const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose }) => {
                     <div>
                       <label className="block text-sm font-semibold text-sage-700 dark:text-white mb-1">E-posta</label>
                       <div className="relative">
-                        <Mail className="absolute left-3 top-1/2 -translate-y-1/2 text-sage-400" size={18} />
+                        <Mail className="absolute left-3 top-1/2 -translate-y-1/2 text-sage-600" size={18} />
                         <input
                           type="email"
                           value={email}
@@ -428,7 +428,7 @@ export const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose }) => {
                     </button>
                   </div>
                   
-                  <div className="mt-6 text-center text-xs text-sage-500 dark:text-neutral-500">
+                  <div className="mt-6 text-center text-xs text-sage-500 dark:text-neutral-400">
                     Devam ederek <a href="/terms" className="underline hover:text-sage-700 dark:hover:text-neutral-300">Kullanım Koşulları</a>'nı ve <a href="/privacy" className="underline hover:text-sage-700 dark:hover:text-neutral-300">Gizlilik Politikası</a>'nı kabul etmiş olursunuz.
                   </div>
                 </>

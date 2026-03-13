@@ -136,17 +136,17 @@ export const NotificationsPanel: React.FC<NotificationsPanelProps> = ({ isOpen, 
           >
             <div className="flex items-center justify-between p-4 border-b border-sage-200 dark:border-neutral-800">
               <div className="flex items-center gap-2">
-                <Bell className="text-sage-600 dark:text-sage-400" size={20} />
+                <Bell className="text-sage-600 dark:text-sage-600" size={20} />
                 <h2 className="text-lg font-bold text-sage-800 dark:text-white">Bildirimler</h2>
               </div>
-              <button onClick={onClose} className="p-2 text-sage-500 hover:bg-sage-100 dark:hover:bg-neutral-800 rounded-full transition-colors">
+              <button onClick={onClose} className="p-2 text-sage-600 hover:bg-sage-100 dark:hover:bg-neutral-800 rounded-full transition-colors">
                 <X size={20} />
               </button>
             </div>
 
             <div className="flex-1 overflow-y-auto p-4 space-y-4">
               {notifications.length === 0 ? (
-                <div className="text-center text-sage-500 dark:text-sage-400 mt-10">
+                <div className="text-center text-sage-600 dark:text-sage-600 mt-10">
                   <p>Henüz bildiriminiz yok.</p>
                 </div>
               ) : (

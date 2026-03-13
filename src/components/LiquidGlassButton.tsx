@@ -61,7 +61,7 @@ export const LiquidGlassButton: React.FC<LiquidGlassButtonProps> = ({
       <div className="absolute inset-0 -translate-x-full animate-shimmer bg-gradient-to-r from-transparent via-white/10 to-transparent rounded-2xl z-0 pointer-events-none" />
 
       {/* Content */}
-      <div className="relative z-10 flex items-center justify-center gap-2 w-full h-full text-white">
+      <div className="relative z-10 flex items-center justify-center gap-2 w-full h-full text-white font-bold drop-shadow-[0_2px_4px_rgba(0,0,0,0.8)]">
         {children}
       </div>
     </motion.button>
