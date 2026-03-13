@@ -286,6 +286,7 @@ function AppContent() {
   }, []);
   
   const [unreadNotifications, setUnreadNotifications] = useState(0);
+  const [pushSubscription, setPushSubscription] = useState<PushSubscription | null>(null);
 
   const urlBase64ToUint8Array = (base64String: string) => {
     const padding = '='.repeat((4 - base64String.length % 4) % 4);
@@ -317,6 +318,7 @@ function AppContent() {
             userVisibleOnly: true,
             applicationServerKey: urlBase64ToUint8Array(publicVapidKey)
           });
+          setPushSubscription(subscription);
 
           await fetch('/api/notifications/subscribe', {
             method: 'POST',
@@ -327,7 +329,8 @@ function AppContent() {
           });
         }
 
-        new Notification('HatimPro', {
+        // Use registration.showNotification instead of new Notification
+        await registration.showNotification('HatimPro', {
           body: 'Bildirimler başarıyla etkinleştirildi.',
           icon: '/favicon.svg'
         });
@@ -339,7 +342,12 @@ function AppContent() {
 
   useEffect(() => {
     if ('serviceWorker' in navigator) {
-      navigator.serviceWorker.register('/sw.js').catch(err => console.error('SW registration failed:', err));
+      navigator.serviceWorker.register('/sw.js')
+        .then(async (registration) => {
+          const subscription = await registration.pushManager.getSubscription();
+          if (subscription) setPushSubscription(subscription);
+        })
+        .catch(err => console.error('SW registration failed:', err));
     }
   }, []);
 
@@ -1720,7 +1728,8 @@ function AppContent() {
                               body: JSON.stringify({
                                 title: 'Hatim Pro Test',
                                 body: 'Sunucu üzerinden gönderilen test bildirimi!',
-                                url: '/'
+                                url: '/',
+                                subscription: pushSubscription
                               }),
                               headers: { 'content-type': 'application/json' }
                             });
