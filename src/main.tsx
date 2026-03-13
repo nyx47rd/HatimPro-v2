@@ -1,7 +1,6 @@
 import {StrictMode} from 'react';
 import {createRoot} from 'react-dom/client';
 import { ThemeProvider } from 'next-themes';
-import { Analytics } from "@vercel/analytics/react";
 import App from './App.tsx';
 import './index.css';
 import {AuthProvider} from './contexts/AuthContext';
@@ -29,7 +28,6 @@ createRoot(document.getElementById('root')!).render(
     <ThemeProvider attribute="class" defaultTheme="dark" forcedTheme="dark" enableSystem={false}>
       <AuthProvider>
         <App />
-        <Analytics />
       </AuthProvider>
     </ThemeProvider>
   </StrictMode>,
