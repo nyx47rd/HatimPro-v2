@@ -107,8 +107,8 @@ export function useGitHubUpdate() {
       }
     }
     
-    // Hard reload with cache busting query param
-    window.location.href = window.location.pathname + '?t=' + new Date().getTime();
+    // Hard reload with cache busting query param to home page to avoid 404s
+    window.location.href = window.location.origin + '/?t=' + new Date().getTime();
   };
 
   useEffect(() => {

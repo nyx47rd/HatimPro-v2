@@ -114,7 +114,7 @@ const LazyLegalPage = React.lazy(() => import('./components/LegalPage').then(mod
 const LazyDataDeletionPage = React.lazy(() => import('./components/DataDeletionPage').then(module => ({ default: module.DataDeletionPage })));
 const LazyGoogleOneTap = React.lazy(() => import('./components/GoogleOneTap').then(module => ({ default: module.GoogleOneTap })));
 
-type View = 'home' | 'tasks' | 'history' | 'settings' | 'zikir' | 'hatim-rooms' | 'profile' | 'privacy' | 'terms' | 'more' | 'data-deletion' | 'leaderboard' | 'stats';
+type View = 'home' | 'tasks' | 'history' | 'settings' | 'zikir' | 'hatim-rooms' | 'profile' | 'privacy' | 'terms' | 'data-deletion' | 'leaderboard' | 'stats';
 
 class ErrorBoundary extends Component<{children: ReactNode}, {hasError: boolean}> {
   constructor(props: {children: ReactNode}) {
@@ -140,7 +140,7 @@ class ErrorBoundary extends Component<{children: ReactNode}, {hasError: boolean}
           }
         } catch (e) {}
       }
-      window.location.href = window.location.pathname + '?t=' + new Date().getTime();
+      window.location.href = window.location.origin + '/?t=' + new Date().getTime();
     }
   }
   render() {
@@ -165,7 +165,7 @@ class ErrorBoundary extends Component<{children: ReactNode}, {hasError: boolean}
                   }
                 } catch (e) {}
               }
-              window.location.href = window.location.pathname + '?t=' + new Date().getTime();
+              window.location.href = window.location.origin + '/?t=' + new Date().getTime();
             }} 
             className="bg-white text-black px-8 py-3 rounded-2xl font-bold"
           >
@@ -205,7 +205,6 @@ function AppContent() {
     if (path === '/stats') return 'stats';
     if (path === '/zikir') return 'zikir';
     if (path === '/hatim-rooms') return 'hatim-rooms';
-    if (path === '/more') return 'more';
     if (path === '/profile') return 'profile';
     return 'home';
   }, [location.pathname]);
@@ -219,41 +218,9 @@ function AppContent() {
   const [zikirJoinSessionId, setZikirJoinSessionId] = useState<string | null>(null);
   const [hatimJoinSessionId, setHatimJoinSessionId] = useState<string | null>(null);
   const [isUpdating, setIsUpdating] = useState(false);
-  const [isAccountSwitcherOpen, setIsAccountSwitcherOpen] = useState(false);
   const [isMoreDrawerOpen, setIsMoreDrawerOpen] = useState(false);
-  const [savedAccounts, setSavedAccounts] = useState<{uid: string, email: string, displayName: string, photoURL: string}[]>([]);
-
-  useEffect(() => {
-    const saved = localStorage.getItem('hatimpro_saved_accounts');
-    if (saved) {
-      setSavedAccounts(JSON.parse(saved));
-    }
-  }, []);
 
   const { user, profile, loading: authLoading } = useAuth();
-
-  useEffect(() => {
-    if (user && profile) {
-      setSavedAccounts(prev => {
-        const exists = prev.find(a => a.uid === user.uid);
-        const newAccount = {
-          uid: user.uid,
-          email: user.email || '',
-          displayName: profile.displayName || user.displayName || 'İsimsiz',
-          photoURL: profile.photoURL || user.photoURL || `https://api.dicebear.com/7.x/avataaars/svg?seed=${user.uid}`
-        };
-        
-        let updated;
-        if (exists) {
-          updated = prev.map(a => a.uid === user.uid ? newAccount : a);
-        } else {
-          updated = [...prev, newAccount];
-        }
-        localStorage.setItem('hatimpro_saved_accounts', JSON.stringify(updated));
-        return updated;
-      });
-    }
-  }, [user, profile]);
 
   const handleLogout = async () => {
     try {
@@ -280,30 +247,10 @@ function AppContent() {
       });
       
       setActiveView('home');
-      setIsAccountSwitcherOpen(false);
       setIsMoreDrawerOpen(false);
     } catch (error) {
       console.error("Logout error:", error);
     }
-  };
-
-  const switchAccount = async (uid: string) => {
-    try {
-      playClick();
-      await signOut(auth);
-      setIsAccountSwitcherOpen(false);
-      setIsAuthModalOpen(true);
-    } catch (error) {
-      console.error("Switch account error:", error);
-    }
-  };
-
-  const removeAccount = (uid: string) => {
-    setSavedAccounts(prev => {
-      const updated = prev.filter(a => a.uid !== uid);
-      localStorage.setItem('hatimpro_saved_accounts', JSON.stringify(updated));
-      return updated;
-    });
   };
 
   const handleApplyUpdate = async () => {
@@ -1680,7 +1627,7 @@ function AppContent() {
   const renderSettings = () => (
     <div className="space-y-8 pb-24">
       <div className="flex items-center gap-4 px-2">
-        <button onClick={() => { playClick(); setActiveView('more'); }} className="p-2 hover:bg-sage-100 dark:hover:bg-neutral-800 rounded-full">
+        <button onClick={() => { playClick(); setActiveView('home'); }} className="p-2 hover:bg-sage-100 dark:hover:bg-neutral-800 rounded-full">
           <ChevronLeft size={24} />
         </button>
         <h2 className="text-2xl font-bold text-sage-800 dark:text-white">Ayarlar</h2>
@@ -2447,37 +2394,6 @@ function AppContent() {
 
               <main className="max-w-2xl mx-auto px-6 pt-8 w-full">
                 {activeView === 'home' && renderHome()}
-                {activeView === 'more' && (
-                  <div className="flex flex-col gap-4 p-4">
-                    <div className="flex items-center justify-between mb-2">
-                      <h1 className="text-xl font-bold text-sage-800 dark:text-white">Diğer</h1>
-                      <button onClick={() => { playClick(); setActiveView('home'); }} className="text-sage-500 hover:text-sage-800 dark:text-sage-400 dark:hover:text-white">
-                        <X size={24} />
-                      </button>
-                    </div>
-                    <button 
-                      onClick={() => { playClick(); setActiveView('leaderboard'); }} 
-                      className="flex items-center gap-4 p-4 bg-white dark:bg-neutral-900 rounded-2xl border border-sage-100 dark:border-neutral-800 shadow-sm hover:bg-sage-50 dark:hover:bg-neutral-800 transition-colors"
-                    >
-                      <Trophy className="text-sage-600 dark:text-white" size={24} />
-                      <span className="font-bold text-sage-800 dark:text-white">Liderlik Tablosu</span>
-                    </button>
-                    <button 
-                      onClick={() => { playClick(); setActiveView('stats'); }} 
-                      className="flex items-center gap-4 p-4 bg-white dark:bg-neutral-900 rounded-2xl border border-sage-100 dark:border-neutral-800 shadow-sm hover:bg-sage-50 dark:hover:bg-neutral-800 transition-colors"
-                    >
-                      <BarChart2 className="text-sage-600 dark:text-white" size={24} />
-                      <span className="font-bold text-sage-800 dark:text-white">İstatistikler</span>
-                    </button>
-                    <button 
-                      onClick={() => { playClick(); setActiveView('settings'); }} 
-                      className="flex items-center gap-4 p-4 bg-white dark:bg-neutral-900 rounded-2xl border border-sage-100 dark:border-neutral-800 shadow-sm hover:bg-sage-50 dark:hover:bg-neutral-800 transition-colors"
-                    >
-                      <Settings className="text-sage-600 dark:text-white" size={24} />
-                      <span className="font-bold text-sage-800 dark:text-white">Ayarlar</span>
-                    </button>
-                  </div>
-                )}
                 {activeView === 'tasks' && renderTasks()}
                 {activeView === 'history' && renderHistory()}
                 {activeView === 'settings' && renderSettings()}
@@ -2488,7 +2404,7 @@ function AppContent() {
                         <LazyProfilePage 
                           username={profileUsername} 
                           onBack={() => {
-                            setActiveView('more');
+                            setActiveView('home');
                           }} 
                           playClick={playClick} 
                         />
@@ -2503,7 +2419,7 @@ function AppContent() {
                         <LazyLeaderboardPage 
                           onBack={() => {
                             playClick();
-                            setActiveView('more');
+                            setActiveView('home');
                           }} 
                           playClick={playClick} 
                         />
@@ -2519,7 +2435,7 @@ function AppContent() {
                           data={data}
                           onBack={() => {
                             playClick();
-                            setActiveView('more');
+                            setActiveView('home');
                           }} 
                           playClick={playClick} 
                         />
@@ -2603,7 +2519,7 @@ function AppContent() {
               </main>
 
               {/* Bottom Navbar (Mobile Only) */}
-              <nav className="md:hidden fixed bottom-0 left-0 right-0 bg-white dark:bg-black border-t border-sage-200 dark:border-white/10 px-4 py-3 pb-5 z-40">
+              <nav className="md:hidden fixed bottom-0 left-0 right-0 bg-white dark:bg-black border-t border-sage-200 dark:border-white/10 px-4 py-3 pb-5 z-[60]">
                   <div className="max-w-md mx-auto flex justify-between items-center">
                     <button 
                       onClick={() => { playClick(); setActiveView('home'); }}
@@ -2648,9 +2564,9 @@ function AppContent() {
                       <Drawer.Trigger asChild>
                         <button 
                           onClick={() => playClick()}
-                          className={`flex flex-col items-center gap-1 transition-colors ${activeView === 'more' ? 'text-sage-800 dark:text-white' : 'text-sage-400 dark:text-neutral-500'}`}
+                          className="flex flex-col items-center gap-1 transition-colors text-sage-400 dark:text-neutral-500"
                         >
-                          <MoreHorizontal size={22} strokeWidth={activeView === 'more' ? 2.5 : 2} />
+                          <MoreHorizontal size={22} strokeWidth={2} />
                           <span className="text-[10px] font-medium hidden sm:block">Diğer</span>
                         </button>
                       </Drawer.Trigger>
@@ -2679,14 +2595,6 @@ function AppContent() {
                                 </div>
                                 <span className="font-bold text-sage-800 dark:text-white">Ayarlar</span>
                               </button>
-                              {user && (
-                                <button onClick={() => { playClick(); setIsAccountSwitcherOpen(true); setIsMoreDrawerOpen(false); }} className="w-full flex items-center gap-4 px-6 py-4 hover:bg-sage-50 dark:hover:bg-neutral-800 rounded-2xl transition-colors">
-                                  <div className="bg-purple-100 dark:bg-purple-900/30 p-2 rounded-xl text-purple-600 dark:text-purple-400">
-                                    <UserPlus size={20} />
-                                  </div>
-                                  <span className="font-bold text-sage-800 dark:text-white">Hesap Değiştir</span>
-                                </button>
-                              )}
                             </div>
                           </div>
                         </Drawer.Content>
@@ -2700,76 +2608,6 @@ function AppContent() {
       </AnimatePresence>
 
       <AuthModal isOpen={isAuthModalOpen} onClose={() => setIsAuthModalOpen(false)} />
-
-      {/* Account Switcher Modal */}
-      <AnimatePresence>
-        {isAccountSwitcherOpen && (
-          <div className="fixed inset-0 z-[100] flex items-center justify-center p-4">
-            <motion.div 
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              exit={{ opacity: 0 }}
-              onClick={() => setIsAccountSwitcherOpen(false)}
-              className="absolute inset-0 bg-black/60 backdrop-blur-sm"
-            />
-            <motion.div 
-              initial={{ scale: 0.9, opacity: 0, y: 20 }}
-              animate={{ scale: 1, opacity: 1, y: 0 }}
-              exit={{ scale: 0.9, opacity: 0, y: 20 }}
-              className="bg-white dark:bg-neutral-900 w-full max-w-sm rounded-[32px] p-8 relative z-10 shadow-2xl overflow-hidden"
-            >
-              <div className="flex items-center justify-between mb-6">
-                <h3 className="text-xl font-bold text-sage-800 dark:text-white">Hesap Değiştir</h3>
-                <button onClick={() => setIsAccountSwitcherOpen(false)} className="p-2 text-sage-400 hover:text-sage-600 transition-colors">
-                  <X size={20} />
-                </button>
-              </div>
-
-              <div className="space-y-3 max-h-[40vh] overflow-y-auto custom-scrollbar pr-2">
-                {savedAccounts.map((acc) => (
-                  <div key={acc.uid} className="flex items-center justify-between p-3 bg-sage-50 dark:bg-neutral-800 rounded-2xl group">
-                    <button 
-                      onClick={() => switchAccount(acc.uid)}
-                      className="flex items-center gap-3 flex-1 text-left"
-                    >
-                      <img src={acc.photoURL} alt={acc.displayName} className="w-10 h-10 rounded-full border-2 border-white dark:border-neutral-700" />
-                      <div className="flex-1 min-w-0">
-                        <p className="font-bold text-sage-800 dark:text-white truncate">{acc.displayName}</p>
-                        <p className="text-xs text-sage-500 dark:text-neutral-400 truncate">{acc.email}</p>
-                      </div>
-                      {user?.uid === acc.uid && (
-                        <div className="w-2 h-2 bg-emerald-500 rounded-full" />
-                      )}
-                    </button>
-                    {user?.uid !== acc.uid && (
-                      <button 
-                        onClick={() => removeAccount(acc.uid)}
-                        className="p-2 text-sage-300 hover:text-red-500 transition-colors"
-                      >
-                        <Trash2 size={16} />
-                      </button>
-                    )}
-                  </div>
-                ))}
-              </div>
-
-              <button 
-                onClick={() => {
-                  playClick();
-                  signOut(auth).then(() => {
-                    setIsAccountSwitcherOpen(false);
-                    setIsAuthModalOpen(true);
-                  });
-                }}
-                className="w-full mt-6 flex items-center justify-center gap-2 py-4 bg-black text-white rounded-2xl font-bold hover:bg-neutral-800 transition-all"
-              >
-                <Plus size={20} />
-                Yeni Hesap Ekle
-              </button>
-            </motion.div>
-          </div>
-        )}
-      </AnimatePresence>
 
       {/* Spiritual Commitment Modal */}
       <AnimatePresence>
