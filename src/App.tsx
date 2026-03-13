@@ -121,11 +121,25 @@ class ErrorBoundary extends Component<{children: ReactNode}, {hasError: boolean}
     this.state = { hasError: false };
   }
   static getDerivedStateFromError() { return { hasError: true }; }
-  componentDidCatch(error: any, errorInfo: any) {
+  async componentDidCatch(error: any, errorInfo: any) {
     console.error("App Crash:", error, errorInfo);
-    // If it's a chunk error, reload
+    // If it's a chunk error, clear caches and reload
     if (error.message && error.message.toLowerCase().includes('chunk')) {
-      window.location.reload();
+      if ('caches' in window) {
+        try {
+          const cacheNames = await caches.keys();
+          await Promise.all(cacheNames.map(name => caches.delete(name)));
+        } catch (e) {}
+      }
+      if ('serviceWorker' in navigator) {
+        try {
+          const registrations = await navigator.serviceWorker.getRegistrations();
+          for (const registration of registrations) {
+            await registration.unregister();
+          }
+        } catch (e) {}
+      }
+      window.location.href = window.location.pathname + '?t=' + new Date().getTime();
     }
   }
   render() {
@@ -135,7 +149,23 @@ class ErrorBoundary extends Component<{children: ReactNode}, {hasError: boolean}
           <h1 className="text-xl font-bold text-white mb-4">Bir şeyler ters gitti</h1>
           <p className="text-white/60 mb-6">Uygulama yüklenirken bir sorun oluştu.</p>
           <button 
-            onClick={() => window.location.reload()} 
+            onClick={async () => {
+              if ('caches' in window) {
+                try {
+                  const cacheNames = await caches.keys();
+                  await Promise.all(cacheNames.map(name => caches.delete(name)));
+                } catch (e) {}
+              }
+              if ('serviceWorker' in navigator) {
+                try {
+                  const registrations = await navigator.serviceWorker.getRegistrations();
+                  for (const registration of registrations) {
+                    await registration.unregister();
+                  }
+                } catch (e) {}
+              }
+              window.location.href = window.location.pathname + '?t=' + new Date().getTime();
+            }} 
             className="bg-white text-black px-8 py-3 rounded-2xl font-bold"
           >
             Yeniden Yükle

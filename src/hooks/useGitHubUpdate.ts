@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 
 const STORAGE_KEY = 'hatimpro_latest_commit_sha';
 
@@ -8,7 +8,8 @@ export function useGitHubUpdate() {
   const [isChecking, setIsChecking] = useState(false);
   const [lastCheckTime, setLastCheckTime] = useState<Date | null>(null);
   const [checkStatus, setCheckStatus] = useState<'idle' | 'checking' | 'up-to-date' | 'available' | 'error' | 'no-repo'>('idle');
-
+  
+  const lastApiCallTime = useRef<number>(0);
   const repo = import.meta.env.VITE_GITHUB_REPO;
 
   const checkForUpdates = useCallback(async (manual = false) => {
@@ -18,10 +19,19 @@ export function useGitHubUpdate() {
       return false;
     }
 
+    const now = Date.now();
+    // Throttle automatic checks to once every 30 seconds to avoid API rate limits
+    if (!manual && now - lastApiCallTime.current < 30000) {
+      return false;
+    }
+    
+    lastApiCallTime.current = now;
     setIsChecking(true);
     setCheckStatus('checking');
+    
     try {
-      const response = await fetch(`https://api.github.com/repos/${repo}/commits/main`, {
+      // Add a timestamp to bypass GitHub API cache
+      const response = await fetch(`https://api.github.com/repos/${repo}/commits/main?t=${now}`, {
         headers: {
           'Accept': 'application/vnd.github.v3+json'
         }
@@ -70,29 +80,53 @@ export function useGitHubUpdate() {
     }
   }, [repo]);
 
-  const applyUpdate = () => {
+  const applyUpdate = async () => {
     if (latestCommit) {
       localStorage.setItem(STORAGE_KEY, latestCommit);
     }
-    window.location.reload();
+    
+    // Clear all browser caches to ensure the new version is loaded
+    if ('caches' in window) {
+      try {
+        const cacheNames = await caches.keys();
+        await Promise.all(cacheNames.map(name => caches.delete(name)));
+      } catch (e) {
+        console.error("Error clearing caches", e);
+      }
+    }
+    
+    // Unregister service workers
+    if ('serviceWorker' in navigator) {
+      try {
+        const registrations = await navigator.serviceWorker.getRegistrations();
+        for (const registration of registrations) {
+          await registration.unregister();
+        }
+      } catch (e) {
+        console.error("Error unregistering service workers", e);
+      }
+    }
+    
+    // Hard reload with cache busting query param
+    window.location.href = window.location.pathname + '?t=' + new Date().getTime();
   };
 
   useEffect(() => {
     if (repo) {
+      // Initial check
       checkForUpdates();
-      
-      // Check every 5 minutes
-      const interval = setInterval(() => {
-        checkForUpdates();
-      }, 5 * 60 * 1000);
 
-      // Check immediately when the user focuses the window/tab
+      // Check when the user focuses the window/tab
       const handleFocus = () => checkForUpdates();
+      // Check when the user interacts with the app (clicks anywhere)
+      const handleClick = () => checkForUpdates();
+
       window.addEventListener('focus', handleFocus);
+      document.addEventListener('click', handleClick);
 
       return () => {
-        clearInterval(interval);
         window.removeEventListener('focus', handleFocus);
+        document.removeEventListener('click', handleClick);
       };
     } else {
       setCheckStatus('no-repo');
