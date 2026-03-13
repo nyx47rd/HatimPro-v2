@@ -287,19 +287,61 @@ function AppContent() {
   
   const [unreadNotifications, setUnreadNotifications] = useState(0);
 
+  const urlBase64ToUint8Array = (base64String: string) => {
+    const padding = '='.repeat((4 - base64String.length % 4) % 4);
+    const base64 = (base64String + padding)
+      .replace(/\-/g, '+')
+      .replace(/_/g, '/');
+    const rawData = window.atob(base64);
+    const outputArray = new Uint8Array(rawData.length);
+    for (let i = 0; i < rawData.length; ++i) {
+      outputArray[i] = rawData.charCodeAt(i);
+    }
+    return outputArray;
+  };
+
   const requestNotificationPermission = async () => {
     if (!('Notification' in window)) {
       alert('Tarayıcınız bildirimleri desteklemiyor.');
       return;
     }
+    
     const permission = await Notification.requestPermission();
     if (permission === 'granted') {
-      new Notification('HatimPro', {
-        body: 'Bildirimler başarıyla etkinleştirildi.',
-        icon: '/favicon.svg'
-      });
+      try {
+        const registration = await navigator.serviceWorker.register('/sw.js');
+        const publicVapidKey = import.meta.env.VITE_VAPID_PUBLIC_KEY || 'BEryiIKVG98nuPG9_yjLcUIc9ZPP2ruWPD3LVrZAo0WAijZ4B-Q55NC_LkjNTxZg4dn96PCAeWtk0tVnX4dFxPU';
+        
+        if (publicVapidKey) {
+          const subscription = await registration.pushManager.subscribe({
+            userVisibleOnly: true,
+            applicationServerKey: urlBase64ToUint8Array(publicVapidKey)
+          });
+
+          await fetch('/api/notifications/subscribe', {
+            method: 'POST',
+            body: JSON.stringify(subscription),
+            headers: {
+              'content-type': 'application/json'
+            }
+          });
+        }
+
+        new Notification('HatimPro', {
+          body: 'Bildirimler başarıyla etkinleştirildi.',
+          icon: '/favicon.svg'
+        });
+      } catch (error) {
+        console.error("Push subscription error:", error);
+      }
     }
   };
+
+  useEffect(() => {
+    if ('serviceWorker' in navigator) {
+      navigator.serviceWorker.register('/sw.js').catch(err => console.error('SW registration failed:', err));
+    }
+  }, []);
 
   useEffect(() => {
     if (!user) {
@@ -1647,6 +1689,54 @@ function AppContent() {
                   <div>
                     <p className="font-bold text-sage-800 dark:text-white">Giriş Yapıldı</p>
                     <p className="text-xs text-sage-600 dark:text-neutral-300">{user.email}</p>
+                  </div>
+                </div>
+
+                {/* Notification Permission */}
+                <div className="flex items-center justify-between p-4 bg-sage-50 dark:bg-neutral-800 rounded-2xl">
+                  <div className="flex items-center gap-3">
+                    <div className="bg-blue-100 dark:bg-blue-900/30 p-2 rounded-xl text-blue-600 dark:text-blue-400">
+                      <Bell size={20} />
+                    </div>
+                    <span className="font-bold text-sage-800 dark:text-white text-sm">Bildirim İzni</span>
+                  </div>
+                  <div className="flex gap-2">
+                    <button 
+                      onClick={requestNotificationPermission}
+                      className={`text-xs font-bold px-3 py-1.5 rounded-lg transition-colors ${
+                        Notification.permission === 'granted' 
+                          ? 'bg-emerald-100 text-emerald-600 dark:bg-emerald-900/30 dark:text-emerald-400' 
+                          : 'bg-black text-white hover:bg-neutral-800'
+                      }`}
+                    >
+                      {Notification.permission === 'granted' ? 'İzin Verildi' : 'İzin Ver'}
+                    </button>
+                    {Notification.permission === 'granted' && (
+                      <button 
+                        onClick={async () => {
+                          try {
+                            const response = await fetch('/api/notifications/send', {
+                              method: 'POST',
+                              body: JSON.stringify({
+                                title: 'Hatim Pro Test',
+                                body: 'Sunucu üzerinden gönderilen test bildirimi!',
+                                url: '/'
+                              }),
+                              headers: { 'content-type': 'application/json' }
+                            });
+                            if (response.ok) {
+                              setMfaSuccess('Test bildirimi gönderildi!');
+                              setTimeout(() => setMfaSuccess(null), 3000);
+                            }
+                          } catch (e) {
+                            console.error(e);
+                          }
+                        }}
+                        className="text-xs font-bold px-3 py-1.5 rounded-lg bg-blue-100 text-blue-600 dark:bg-blue-900/30 dark:text-blue-400"
+                      >
+                        Test Et
+                      </button>
+                    )}
                   </div>
                 </div>
 
