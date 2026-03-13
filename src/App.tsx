@@ -220,6 +220,7 @@ function AppContent() {
   const [hatimJoinSessionId, setHatimJoinSessionId] = useState<string | null>(null);
   const [isUpdating, setIsUpdating] = useState(false);
   const [isAccountSwitcherOpen, setIsAccountSwitcherOpen] = useState(false);
+  const [isMoreDrawerOpen, setIsMoreDrawerOpen] = useState(false);
   const [savedAccounts, setSavedAccounts] = useState<{uid: string, email: string, displayName: string, photoURL: string}[]>([]);
 
   useEffect(() => {
@@ -258,7 +259,29 @@ function AppContent() {
     try {
       playClick();
       await signOut(auth);
-      // We don't remove from savedAccounts here, just logout
+      
+      // Full reset logic to clear local data
+      localStorage.removeItem(STORAGE_KEY);
+      localStorage.removeItem('local_zikir_tasks');
+      
+      const initialTaskId = crypto.randomUUID();
+      setData({
+        activeTaskId: initialTaskId,
+        tasks: [{
+          id: initialTaskId,
+          name: "Tam Hatim",
+          startPage: 1,
+          endPage: QURAN_TOTAL_PAGES,
+          currentPage: 0,
+          isCompleted: false,
+          createdAt: new Date().toISOString()
+        }],
+        logs: []
+      });
+      
+      setActiveView('home');
+      setIsAccountSwitcherOpen(false);
+      setIsMoreDrawerOpen(false);
     } catch (error) {
       console.error("Logout error:", error);
     }
@@ -267,11 +290,8 @@ function AppContent() {
   const switchAccount = async (uid: string) => {
     try {
       playClick();
-      await signOut(auth);
-      setIsAccountSwitcherOpen(false);
-      setIsAuthModalOpen(true); // User needs to log in again for the other account
-      // Note: Seamless switching without re-login requires custom tokens or multiple auth instances.
-      // For now, we show the list and prompt for login.
+      await handleLogout();
+      setIsAuthModalOpen(true);
     } catch (error) {
       console.error("Switch account error:", error);
     }
@@ -1756,27 +1776,9 @@ function AppContent() {
                 <button 
                   onClick={() => { 
                     playClick(); 
-                    signOut(auth).then(() => {
-                      localStorage.removeItem(STORAGE_KEY);
-                      localStorage.removeItem('local_zikir_tasks');
-                      
-                      const initialTaskId = crypto.randomUUID();
-                      setData({
-                        activeTaskId: initialTaskId,
-                        tasks: [{
-                          id: initialTaskId,
-                          name: "Tam Hatim",
-                          startPage: 1,
-                          endPage: QURAN_TOTAL_PAGES,
-                          currentPage: 0,
-                          isCompleted: false,
-                          createdAt: new Date().toISOString()
-                        }],
-                        logs: []
-                      });
-                      
-                      setActiveView('home');
-                    }); 
+                    handleLogout().then(() => {
+                      setIsAuthModalOpen(true);
+                    });
                   }}
                   className="w-full py-3 text-sage-600 font-bold bg-sage-50 rounded-xl hover:bg-sage-100 transition-colors mt-2"
                 >
@@ -2600,8 +2602,7 @@ function AppContent() {
               </main>
 
               {/* Bottom Navbar (Mobile Only) */}
-              {(activeView as any) !== 'zikir' && (activeView as any) !== 'profile' && (
-                <nav className="md:hidden fixed bottom-0 left-0 right-0 bg-white dark:bg-black border-t border-sage-200 dark:border-white/10 px-4 py-3 pb-5 z-40">
+              <nav className="md:hidden fixed bottom-0 left-0 right-0 bg-white dark:bg-black border-t border-sage-200 dark:border-white/10 px-4 py-3 pb-5 z-40">
                   <div className="max-w-md mx-auto flex justify-between items-center">
                     <button 
                       onClick={() => { playClick(); setActiveView('home'); }}
@@ -2642,7 +2643,7 @@ function AppContent() {
                       <User size={22} strokeWidth={activeView === 'profile' ? 2.5 : 2} />
                       <span className="text-[10px] font-medium hidden sm:block">Profil</span>
                     </button>
-                    <Drawer.Root>
+                    <Drawer.Root open={isMoreDrawerOpen} onOpenChange={setIsMoreDrawerOpen}>
                       <Drawer.Trigger asChild>
                         <button 
                           onClick={() => playClick()}
@@ -2659,26 +2660,26 @@ function AppContent() {
                             <div className="mx-auto w-12 h-1.5 flex-shrink-0 rounded-full bg-sage-200 dark:bg-neutral-800 mb-8" />
                             <div className="max-w-md mx-auto space-y-2">
                               <h3 className="text-xl font-bold text-sage-800 dark:text-white mb-4 px-4">Diğer Seçenekler</h3>
-                              <button onClick={() => { playClick(); setActiveView('leaderboard'); }} className="w-full flex items-center gap-4 px-6 py-4 hover:bg-sage-50 dark:hover:bg-neutral-800 rounded-2xl transition-colors">
+                              <button onClick={() => { playClick(); setActiveView('leaderboard'); setIsMoreDrawerOpen(false); }} className="w-full flex items-center gap-4 px-6 py-4 hover:bg-sage-50 dark:hover:bg-neutral-800 rounded-2xl transition-colors">
                                 <div className="bg-amber-100 dark:bg-amber-900/30 p-2 rounded-xl text-amber-600 dark:text-amber-400">
                                   <Trophy size={20} />
                                 </div>
                                 <span className="font-bold text-sage-800 dark:text-white">Liderlik Tablosu</span>
                               </button>
-                              <button onClick={() => { playClick(); setActiveView('stats'); }} className="w-full flex items-center gap-4 px-6 py-4 hover:bg-sage-50 dark:hover:bg-neutral-800 rounded-2xl transition-colors">
+                              <button onClick={() => { playClick(); setActiveView('stats'); setIsMoreDrawerOpen(false); }} className="w-full flex items-center gap-4 px-6 py-4 hover:bg-sage-50 dark:hover:bg-neutral-800 rounded-2xl transition-colors">
                                 <div className="bg-blue-100 dark:bg-blue-900/30 p-2 rounded-xl text-blue-600 dark:text-blue-400">
                                   <BarChart2 size={20} />
                                 </div>
                                 <span className="font-bold text-sage-800 dark:text-white">İstatistikler</span>
                               </button>
-                              <button onClick={() => { playClick(); setActiveView('settings'); }} className="w-full flex items-center gap-4 px-6 py-4 hover:bg-sage-50 dark:hover:bg-neutral-800 rounded-2xl transition-colors">
+                              <button onClick={() => { playClick(); setActiveView('settings'); setIsMoreDrawerOpen(false); }} className="w-full flex items-center gap-4 px-6 py-4 hover:bg-sage-50 dark:hover:bg-neutral-800 rounded-2xl transition-colors">
                                 <div className="bg-sage-100 dark:bg-neutral-800 p-2 rounded-xl text-sage-600 dark:text-white">
                                   <Settings size={20} />
                                 </div>
                                 <span className="font-bold text-sage-800 dark:text-white">Ayarlar</span>
                               </button>
                               {user && (
-                                <button onClick={() => { playClick(); setIsAccountSwitcherOpen(true); }} className="w-full flex items-center gap-4 px-6 py-4 hover:bg-sage-50 dark:hover:bg-neutral-800 rounded-2xl transition-colors">
+                                <button onClick={() => { playClick(); setIsAccountSwitcherOpen(true); setIsMoreDrawerOpen(false); }} className="w-full flex items-center gap-4 px-6 py-4 hover:bg-sage-50 dark:hover:bg-neutral-800 rounded-2xl transition-colors">
                                   <div className="bg-purple-100 dark:bg-purple-900/30 p-2 rounded-xl text-purple-600 dark:text-purple-400">
                                     <UserPlus size={20} />
                                   </div>
@@ -2692,9 +2693,8 @@ function AppContent() {
                     </Drawer.Root>
                   </div>
                 </nav>
-              )}
-            </div>
-          </motion.div>
+              </div>
+            </motion.div>
         )}
       </AnimatePresence>
 
@@ -2754,10 +2754,12 @@ function AppContent() {
 
               <button 
                 onClick={() => {
-                  setIsAccountSwitcherOpen(false);
-                  setIsAuthModalOpen(true);
+                  playClick();
+                  handleLogout().then(() => {
+                    setIsAuthModalOpen(true);
+                  });
                 }}
-                className="w-full mt-6 flex items-center justify-center gap-2 py-4 bg-sage-800 dark:bg-white text-white dark:text-sage-800 rounded-2xl font-bold hover:opacity-90 transition-opacity"
+                className="w-full mt-6 flex items-center justify-center gap-2 py-4 bg-black text-white rounded-2xl font-bold hover:bg-neutral-800 transition-all"
               >
                 <Plus size={20} />
                 Yeni Hesap Ekle

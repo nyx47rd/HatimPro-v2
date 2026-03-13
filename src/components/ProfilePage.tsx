@@ -124,6 +124,24 @@ export const ProfilePage: React.FC<ProfilePageProps> = ({ username, onBack, play
     }
   };
 
+  // Auto-scroll logic
+  useEffect(() => {
+    const interval = setInterval(() => {
+      if (!scrollRef.current || isDragging.current) return;
+      
+      const width = scrollRef.current.offsetWidth;
+      const totalSlides = 3;
+      const nextSlide = (activeSlide + 1) % totalSlides;
+      
+      scrollRef.current.scrollTo({
+        left: nextSlide * width,
+        behavior: 'smooth'
+      });
+    }, 5000); // Her 5 saniyede bir kaydır
+
+    return () => clearInterval(interval);
+  }, [activeSlide]);
+
   // Calculate chart data
   const chartData = React.useMemo(() => {
     if (!profile?.data?.logs) return [];
