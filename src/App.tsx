@@ -215,6 +215,12 @@ function AppContent() {
   const [isNotificationsOpen, setIsNotificationsOpen] = useState(false);
   const [zikirJoinSessionId, setZikirJoinSessionId] = useState<string | null>(null);
   const [hatimJoinSessionId, setHatimJoinSessionId] = useState<string | null>(null);
+  const [isUpdating, setIsUpdating] = useState(false);
+
+  const handleApplyUpdate = async () => {
+    setIsUpdating(true);
+    await applyUpdate();
+  };
   
   const profileUsername = useMemo<string | undefined>(() => {
     const path = location.pathname;
@@ -617,7 +623,7 @@ function AppContent() {
 
   // Listen to Firebase data
   useEffect(() => {
-    if (user && !authLoading) {
+    if (user) {
       isInitialLoad.current = true;
       const unsubscribe = listenToFirebaseData(user.uid, (firebaseData) => {
         if (firebaseData) {
@@ -649,10 +655,10 @@ function AppContent() {
       return;
     }
 
-    if (user && !authLoading && !isInitialLoad.current) {
+    if (user && !isInitialLoad.current) {
       syncDataToFirebase(user.uid, data);
     }
-  }, [data, user, authLoading]);
+  }, [data, user]);
 
   useEffect(() => {
     localStorage.setItem('hatim_sound_enabled', isSoundEnabled.toString());
@@ -2235,14 +2241,14 @@ function AppContent() {
             className="min-h-screen flex flex-col md:flex-row"
           >
             {/* Desktop Sidebar */}
-            <aside className="hidden md:flex flex-col w-64 border-r border-sage-200 dark:border-neutral-800 bg-white dark:bg-neutral-900 h-screen sticky top-0 overflow-y-auto shrink-0 z-40">
+            <aside className="hidden md:flex flex-col w-64 border-r border-sage-200 dark:border-neutral-800 bg-white dark:bg-neutral-900 h-screen sticky top-0 shrink-0 z-40">
               <div className="p-6 border-b border-sage-200 dark:border-neutral-800 flex items-center justify-between">
                 <h1 className="display text-2xl font-bold text-sage-800 dark:text-white tracking-tight flex items-center gap-2">
                   <img src="/favicon.svg" alt="HatimPro Logo" className="w-8 h-8" referrerPolicy="no-referrer" />
                   HatimPro
                 </h1>
               </div>
-              <nav className="flex-1 p-4 space-y-2">
+              <nav className="flex-1 p-4 space-y-2 overflow-y-auto custom-scrollbar">
                 <button onClick={() => setActiveView('home')} className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl transition-colors ${activeView === 'home' ? 'bg-sage-100 dark:bg-neutral-800 text-sage-800 dark:text-white font-bold' : 'text-sage-600 dark:text-neutral-400 hover:bg-sage-50 dark:hover:bg-neutral-800/50'}`}>
                   <Home size={20} strokeWidth={activeView === 'home' ? 2.5 : 2} />
                   Ana Sayfa
@@ -2263,10 +2269,22 @@ function AppContent() {
                   <User size={20} strokeWidth={activeView === 'profile' ? 2.5 : 2} />
                   Profil
                 </button>
-                <button onClick={() => handleProtectedAction(() => setActiveView('more'))} className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl transition-colors ${activeView === 'more' ? 'bg-sage-100 dark:bg-neutral-800 text-sage-800 dark:text-white font-bold' : 'text-sage-600 dark:text-neutral-400 hover:bg-sage-50 dark:hover:bg-neutral-800/50'}`}>
-                  <MoreHorizontal size={20} strokeWidth={activeView === 'more' ? 2.5 : 2} />
-                  Diğer
-                </button>
+                
+                <div className="pt-4 pb-2">
+                  <div className="px-4 text-[10px] font-bold text-sage-400 uppercase tracking-wider mb-2">Keşfet & Ayarlar</div>
+                  <button onClick={() => { playClick(); setActiveView('leaderboard'); }} className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl transition-colors ${activeView === 'leaderboard' ? 'bg-sage-100 dark:bg-neutral-800 text-sage-800 dark:text-white font-bold' : 'text-sage-600 dark:text-neutral-400 hover:bg-sage-50 dark:hover:bg-neutral-800/50'}`}>
+                    <Trophy size={20} strokeWidth={activeView === 'leaderboard' ? 2.5 : 2} />
+                    Liderlik Tablosu
+                  </button>
+                  <button onClick={() => { playClick(); setActiveView('stats'); }} className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl transition-colors ${activeView === 'stats' ? 'bg-sage-100 dark:bg-neutral-800 text-sage-800 dark:text-white font-bold' : 'text-sage-600 dark:text-neutral-400 hover:bg-sage-50 dark:hover:bg-neutral-800/50'}`}>
+                    <BarChart2 size={20} strokeWidth={activeView === 'stats' ? 2.5 : 2} />
+                    İstatistikler
+                  </button>
+                  <button onClick={() => { playClick(); setActiveView('settings'); }} className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl transition-colors ${activeView === 'settings' ? 'bg-sage-100 dark:bg-neutral-800 text-sage-800 dark:text-white font-bold' : 'text-sage-600 dark:text-neutral-400 hover:bg-sage-50 dark:hover:bg-neutral-800/50'}`}>
+                    <Settings size={20} strokeWidth={activeView === 'settings' ? 2.5 : 2} />
+                    Ayarlar
+                  </button>
+                </div>
               </nav>
               <div className="p-4 border-t border-sage-200 dark:border-neutral-800">
                 <div className="flex items-center gap-2 justify-center">
@@ -3091,10 +3109,18 @@ function AppContent() {
               </p>
               
               <button 
-                onClick={applyUpdate}
-                className="w-full py-4 bg-emerald-600 hover:bg-emerald-700 text-white font-bold rounded-2xl transition-colors shadow-lg shadow-emerald-600/20"
+                onClick={handleApplyUpdate}
+                disabled={isUpdating}
+                className="w-full py-4 bg-emerald-600 hover:bg-emerald-700 disabled:bg-emerald-400 text-white font-bold rounded-2xl transition-colors shadow-lg shadow-emerald-600/20 flex items-center justify-center gap-2"
               >
-                Şimdi Yenile
+                {isUpdating ? (
+                  <>
+                    <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin" />
+                    Yükleniyor...
+                  </>
+                ) : (
+                  'Şimdi Yenile'
+                )}
               </button>
             </motion.div>
           </div>
