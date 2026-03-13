@@ -42,8 +42,11 @@ import {
   BarChart2,
   Timer,
   Mic,
-  Fingerprint
+  Fingerprint,
+  LogOut,
+  UserPlus
 } from 'lucide-react';
+import { Drawer } from 'vaul';
 import { motion, AnimatePresence } from 'motion/react';
 import { HatimData, ReadingLog, HatimTask } from './types';
 import { useAuth } from './contexts/AuthContext';
@@ -216,6 +219,71 @@ function AppContent() {
   const [zikirJoinSessionId, setZikirJoinSessionId] = useState<string | null>(null);
   const [hatimJoinSessionId, setHatimJoinSessionId] = useState<string | null>(null);
   const [isUpdating, setIsUpdating] = useState(false);
+  const [isAccountSwitcherOpen, setIsAccountSwitcherOpen] = useState(false);
+  const [savedAccounts, setSavedAccounts] = useState<{uid: string, email: string, displayName: string, photoURL: string}[]>([]);
+
+  useEffect(() => {
+    const saved = localStorage.getItem('hatimpro_saved_accounts');
+    if (saved) {
+      setSavedAccounts(JSON.parse(saved));
+    }
+  }, []);
+
+  const { user, profile, loading: authLoading } = useAuth();
+
+  useEffect(() => {
+    if (user && profile) {
+      setSavedAccounts(prev => {
+        const exists = prev.find(a => a.uid === user.uid);
+        const newAccount = {
+          uid: user.uid,
+          email: user.email || '',
+          displayName: profile.displayName || user.displayName || 'İsimsiz',
+          photoURL: profile.photoURL || user.photoURL || `https://api.dicebear.com/7.x/avataaars/svg?seed=${user.uid}`
+        };
+        
+        let updated;
+        if (exists) {
+          updated = prev.map(a => a.uid === user.uid ? newAccount : a);
+        } else {
+          updated = [...prev, newAccount];
+        }
+        localStorage.setItem('hatimpro_saved_accounts', JSON.stringify(updated));
+        return updated;
+      });
+    }
+  }, [user, profile]);
+
+  const handleLogout = async () => {
+    try {
+      playClick();
+      await signOut(auth);
+      // We don't remove from savedAccounts here, just logout
+    } catch (error) {
+      console.error("Logout error:", error);
+    }
+  };
+
+  const switchAccount = async (uid: string) => {
+    try {
+      playClick();
+      await signOut(auth);
+      setIsAccountSwitcherOpen(false);
+      setIsAuthModalOpen(true); // User needs to log in again for the other account
+      // Note: Seamless switching without re-login requires custom tokens or multiple auth instances.
+      // For now, we show the list and prompt for login.
+    } catch (error) {
+      console.error("Switch account error:", error);
+    }
+  };
+
+  const removeAccount = (uid: string) => {
+    setSavedAccounts(prev => {
+      const updated = prev.filter(a => a.uid !== uid);
+      localStorage.setItem('hatimpro_saved_accounts', JSON.stringify(updated));
+      return updated;
+    });
+  };
 
   const handleApplyUpdate = async () => {
     setIsUpdating(true);
@@ -237,8 +305,6 @@ function AppContent() {
       navigate('/profile');
     }
   };
-
-  const { user, profile, loading: authLoading } = useAuth();
 
   // Auto-reload on chunk errors
   useEffect(() => {
@@ -1285,22 +1351,22 @@ function AppContent() {
           <BookOpen size={120} />
         </div>
         
-        <div className="flex justify-between items-end mb-6">
+        <div className="flex flex-col sm:flex-row justify-between items-start sm:items-end gap-4 mb-6">
           <div>
-            <span className="text-sm font-semibold uppercase tracking-wider text-sage-600 dark:text-neutral-300">İlerleme</span>
+            <span className="text-xs sm:text-sm font-semibold uppercase tracking-wider text-sage-600 dark:text-neutral-300">İlerleme</span>
             <div className="flex items-baseline gap-2 mt-1">
-              <span className="text-5xl font-bold text-sage-800 dark:text-white">{progress.toFixed(1)}%</span>
+              <span className="text-4xl sm:text-5xl font-bold text-sage-800 dark:text-white">{progress.toFixed(1)}%</span>
             </div>
           </div>
-          <div className="text-right">
-            <span className="text-sm font-semibold uppercase tracking-wider text-sage-600 dark:text-neutral-300">Mevcut Sayfa</span>
-            <div className="text-2xl font-bold text-sage-700 dark:text-white">
+          <div className="text-left sm:text-right">
+            <span className="text-xs sm:text-sm font-semibold uppercase tracking-wider text-sage-600 dark:text-neutral-300">Mevcut Sayfa</span>
+            <div className="text-xl sm:text-2xl font-bold text-sage-700 dark:text-white">
               {activeTask.currentPage || activeTask.startPage} <span className="text-sage-300 font-normal">/</span> {activeTask.endPage}
             </div>
           </div>
         </div>
 
-        <div className="h-4 bg-sage-100 rounded-full overflow-hidden">
+        <div className="h-3 sm:h-4 bg-sage-100 rounded-full overflow-hidden">
           <motion.div 
             initial={{ width: 0 }}
             animate={{ width: `${progress}%` }}
@@ -1309,23 +1375,23 @@ function AppContent() {
           />
         </div>
         
-        <div className="mt-6 grid grid-cols-2 gap-4">
-          <div className="bg-sage-50 dark:bg-neutral-800 rounded-2xl p-4 flex items-center gap-3">
+        <div className="mt-6 grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4">
+          <div className="bg-sage-50 dark:bg-neutral-800 rounded-2xl p-3 sm:p-4 flex items-center gap-3">
             <div className="bg-white dark:bg-neutral-700 p-2 rounded-lg text-sage-600 dark:text-white shadow-sm">
-              <TrendingUp size={20} />
+              <TrendingUp size={18} />
             </div>
             <div>
-              <p className="text-xs text-sage-600 dark:text-neutral-300 font-semibold uppercase tracking-tighter">Kalan</p>
-              <p className="text-lg font-bold text-sage-800 dark:text-white">{Math.max(0, totalPagesInRange - pagesReadInRange)}</p>
+              <p className="text-[10px] sm:text-xs text-sage-600 dark:text-neutral-300 font-semibold uppercase tracking-tighter">Kalan</p>
+              <p className="text-base sm:text-lg font-bold text-sage-800 dark:text-white">{Math.max(0, totalPagesInRange - pagesReadInRange)}</p>
             </div>
           </div>
-          <div className="bg-sage-50 dark:bg-neutral-800 rounded-2xl p-4 flex items-center gap-3">
+          <div className="bg-sage-50 dark:bg-neutral-800 rounded-2xl p-3 sm:p-4 flex items-center gap-3">
             <div className="bg-white dark:bg-neutral-700 p-2 rounded-lg text-sage-600 dark:text-white shadow-sm">
-              <CheckCircle2 size={20} />
+              <CheckCircle2 size={18} />
             </div>
             <div>
-              <p className="text-xs text-sage-600 dark:text-neutral-300 font-semibold uppercase tracking-tighter">Okunan</p>
-              <p className="text-lg font-bold text-sage-800 dark:text-white">{pagesReadInRange}</p>
+              <p className="text-[10px] sm:text-xs text-sage-600 dark:text-neutral-300 font-semibold uppercase tracking-tighter">Okunan</p>
+              <p className="text-base sm:text-lg font-bold text-sage-800 dark:text-white">{pagesReadInRange}</p>
             </div>
           </div>
         </div>
@@ -2311,6 +2377,15 @@ function AppContent() {
                       <span className="absolute top-0 right-0 w-2.5 h-2.5 bg-red-500 rounded-full border-2 border-white dark:border-neutral-900"></span>
                     )}
                   </button>
+                  {user && (
+                    <button 
+                      onClick={handleLogout}
+                      className="p-2 text-white bg-red-500 hover:bg-red-600 rounded-full transition-colors"
+                      title="Çıkış Yap"
+                    >
+                      <LogOut size={20} />
+                    </button>
+                  )}
                 </div>
               </div>
             </aside>
@@ -2355,6 +2430,14 @@ function AppContent() {
                         <span className="absolute top-1 right-1 w-2.5 h-2.5 bg-red-500 rounded-full border-2 border-white dark:border-neutral-900"></span>
                       )}
                     </button>
+                    {user && (
+                      <button 
+                        onClick={handleLogout}
+                        className="p-2 text-white bg-red-500 hover:bg-red-600 rounded-full transition-colors"
+                      >
+                        <LogOut size={24} />
+                      </button>
+                    )}
                   </div>
                 </div>
               </header>
@@ -2559,13 +2642,54 @@ function AppContent() {
                       <User size={22} strokeWidth={activeView === 'profile' ? 2.5 : 2} />
                       <span className="text-[10px] font-medium hidden sm:block">Profil</span>
                     </button>
-                    <button 
-                      onClick={() => handleProtectedAction(() => { playClick(); setActiveView('more'); })}
-                      className={`flex flex-col items-center gap-1 transition-colors ${activeView === 'more' ? 'text-sage-800 dark:text-white' : 'text-sage-400 dark:text-neutral-500'}`}
-                    >
-                      <MoreHorizontal size={22} strokeWidth={activeView === 'more' ? 2.5 : 2} />
-                      <span className="text-[10px] font-medium hidden sm:block">Diğer</span>
-                    </button>
+                    <Drawer.Root>
+                      <Drawer.Trigger asChild>
+                        <button 
+                          onClick={() => playClick()}
+                          className={`flex flex-col items-center gap-1 transition-colors ${activeView === 'more' ? 'text-sage-800 dark:text-white' : 'text-sage-400 dark:text-neutral-500'}`}
+                        >
+                          <MoreHorizontal size={22} strokeWidth={activeView === 'more' ? 2.5 : 2} />
+                          <span className="text-[10px] font-medium hidden sm:block">Diğer</span>
+                        </button>
+                      </Drawer.Trigger>
+                      <Drawer.Portal>
+                        <Drawer.Overlay className="fixed inset-0 bg-black/40 z-[60]" />
+                        <Drawer.Content className="bg-white dark:bg-neutral-900 flex flex-col rounded-t-[32px] h-[60vh] mt-24 fixed bottom-0 left-0 right-0 z-[70] outline-none">
+                          <div className="p-4 bg-white dark:bg-neutral-900 rounded-t-[32px] flex-1">
+                            <div className="mx-auto w-12 h-1.5 flex-shrink-0 rounded-full bg-sage-200 dark:bg-neutral-800 mb-8" />
+                            <div className="max-w-md mx-auto space-y-2">
+                              <h3 className="text-xl font-bold text-sage-800 dark:text-white mb-4 px-4">Diğer Seçenekler</h3>
+                              <button onClick={() => { playClick(); setActiveView('leaderboard'); }} className="w-full flex items-center gap-4 px-6 py-4 hover:bg-sage-50 dark:hover:bg-neutral-800 rounded-2xl transition-colors">
+                                <div className="bg-amber-100 dark:bg-amber-900/30 p-2 rounded-xl text-amber-600 dark:text-amber-400">
+                                  <Trophy size={20} />
+                                </div>
+                                <span className="font-bold text-sage-800 dark:text-white">Liderlik Tablosu</span>
+                              </button>
+                              <button onClick={() => { playClick(); setActiveView('stats'); }} className="w-full flex items-center gap-4 px-6 py-4 hover:bg-sage-50 dark:hover:bg-neutral-800 rounded-2xl transition-colors">
+                                <div className="bg-blue-100 dark:bg-blue-900/30 p-2 rounded-xl text-blue-600 dark:text-blue-400">
+                                  <BarChart2 size={20} />
+                                </div>
+                                <span className="font-bold text-sage-800 dark:text-white">İstatistikler</span>
+                              </button>
+                              <button onClick={() => { playClick(); setActiveView('settings'); }} className="w-full flex items-center gap-4 px-6 py-4 hover:bg-sage-50 dark:hover:bg-neutral-800 rounded-2xl transition-colors">
+                                <div className="bg-sage-100 dark:bg-neutral-800 p-2 rounded-xl text-sage-600 dark:text-white">
+                                  <Settings size={20} />
+                                </div>
+                                <span className="font-bold text-sage-800 dark:text-white">Ayarlar</span>
+                              </button>
+                              {user && (
+                                <button onClick={() => { playClick(); setIsAccountSwitcherOpen(true); }} className="w-full flex items-center gap-4 px-6 py-4 hover:bg-sage-50 dark:hover:bg-neutral-800 rounded-2xl transition-colors">
+                                  <div className="bg-purple-100 dark:bg-purple-900/30 p-2 rounded-xl text-purple-600 dark:text-purple-400">
+                                    <UserPlus size={20} />
+                                  </div>
+                                  <span className="font-bold text-sage-800 dark:text-white">Hesap Değiştir</span>
+                                </button>
+                              )}
+                            </div>
+                          </div>
+                        </Drawer.Content>
+                      </Drawer.Portal>
+                    </Drawer.Root>
                   </div>
                 </nav>
               )}
@@ -2575,6 +2699,73 @@ function AppContent() {
       </AnimatePresence>
 
       <AuthModal isOpen={isAuthModalOpen} onClose={() => setIsAuthModalOpen(false)} />
+
+      {/* Account Switcher Modal */}
+      <AnimatePresence>
+        {isAccountSwitcherOpen && (
+          <div className="fixed inset-0 z-[100] flex items-center justify-center p-4">
+            <motion.div 
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              onClick={() => setIsAccountSwitcherOpen(false)}
+              className="absolute inset-0 bg-black/60 backdrop-blur-sm"
+            />
+            <motion.div 
+              initial={{ scale: 0.9, opacity: 0, y: 20 }}
+              animate={{ scale: 1, opacity: 1, y: 0 }}
+              exit={{ scale: 0.9, opacity: 0, y: 20 }}
+              className="bg-white dark:bg-neutral-900 w-full max-w-sm rounded-[32px] p-8 relative z-10 shadow-2xl overflow-hidden"
+            >
+              <div className="flex items-center justify-between mb-6">
+                <h3 className="text-xl font-bold text-sage-800 dark:text-white">Hesap Değiştir</h3>
+                <button onClick={() => setIsAccountSwitcherOpen(false)} className="p-2 text-sage-400 hover:text-sage-600 transition-colors">
+                  <X size={20} />
+                </button>
+              </div>
+
+              <div className="space-y-3 max-h-[40vh] overflow-y-auto custom-scrollbar pr-2">
+                {savedAccounts.map((acc) => (
+                  <div key={acc.uid} className="flex items-center justify-between p-3 bg-sage-50 dark:bg-neutral-800 rounded-2xl group">
+                    <button 
+                      onClick={() => switchAccount(acc.uid)}
+                      className="flex items-center gap-3 flex-1 text-left"
+                    >
+                      <img src={acc.photoURL} alt={acc.displayName} className="w-10 h-10 rounded-full border-2 border-white dark:border-neutral-700" />
+                      <div className="flex-1 min-w-0">
+                        <p className="font-bold text-sage-800 dark:text-white truncate">{acc.displayName}</p>
+                        <p className="text-xs text-sage-500 dark:text-neutral-400 truncate">{acc.email}</p>
+                      </div>
+                      {user?.uid === acc.uid && (
+                        <div className="w-2 h-2 bg-emerald-500 rounded-full" />
+                      )}
+                    </button>
+                    {user?.uid !== acc.uid && (
+                      <button 
+                        onClick={() => removeAccount(acc.uid)}
+                        className="p-2 text-sage-300 hover:text-red-500 transition-colors opacity-0 group-hover:opacity-100"
+                      >
+                        <Trash2 size={16} />
+                      </button>
+                    )}
+                  </div>
+                ))}
+              </div>
+
+              <button 
+                onClick={() => {
+                  setIsAccountSwitcherOpen(false);
+                  setIsAuthModalOpen(true);
+                }}
+                className="w-full mt-6 flex items-center justify-center gap-2 py-4 bg-sage-800 dark:bg-white text-white dark:text-sage-800 rounded-2xl font-bold hover:opacity-90 transition-opacity"
+              >
+                <Plus size={20} />
+                Yeni Hesap Ekle
+              </button>
+            </motion.div>
+          </div>
+        )}
+      </AnimatePresence>
 
       {/* Spiritual Commitment Modal */}
       <AnimatePresence>
