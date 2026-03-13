@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useMemo, FormEvent, useRef, Suspense, Component, ReactNode } from 'react';
-import useSound from 'use-sound';
+import { useLocation, useNavigate } from 'react-router-dom';
 import { LiquidGlassButton } from './components/LiquidGlassButton';
 import { 
   BookOpen,
@@ -185,32 +185,52 @@ export default function App() {
 
 function AppContent() {
   const { updateAvailable, isChecking, lastCheckTime, checkStatus, checkForUpdates, applyUpdate, repo } = useGitHubUpdate();
-  const [activeView, setActiveView] = useState<View>(() => {
-    const path = window.location.pathname;
-    if (path.startsWith('/@')) {
-      return 'profile';
-    }
-    if (path === '/privacy') {
-      return 'privacy';
-    }
-    if (path === '/terms') {
-      return 'terms';
-    }
-    if (path === '/data-deletion') {
-      return 'data-deletion';
-    }
+  
+  const location = useLocation();
+  const navigate = useNavigate();
+
+  const activeView = useMemo<View>(() => {
+    const path = location.pathname;
+    if (path.startsWith('/@')) return 'profile';
+    if (path === '/privacy') return 'privacy';
+    if (path === '/terms') return 'terms';
+    if (path === '/data-deletion') return 'data-deletion';
+    if (path === '/tasks') return 'tasks';
+    if (path === '/history') return 'history';
+    if (path === '/settings') return 'settings';
+    if (path === '/leaderboard') return 'leaderboard';
+    if (path === '/stats') return 'stats';
+    if (path === '/zikir') return 'zikir';
+    if (path === '/hatim-rooms') return 'hatim-rooms';
+    if (path === '/more') return 'more';
+    if (path === '/profile') return 'profile';
     return 'home';
-  });
+  }, [location.pathname]);
+
+  const setActiveView = (view: View) => {
+    if (view === 'home') navigate('/');
+    else navigate(`/${view}`);
+  };
+
   const [isNotificationsOpen, setIsNotificationsOpen] = useState(false);
   const [zikirJoinSessionId, setZikirJoinSessionId] = useState<string | null>(null);
   const [hatimJoinSessionId, setHatimJoinSessionId] = useState<string | null>(null);
-  const [profileUsername, setProfileUsername] = useState<string | undefined>(() => {
-    const path = window.location.pathname;
+  
+  const profileUsername = useMemo<string | undefined>(() => {
+    const path = location.pathname;
     if (path.startsWith('/@')) {
       return path.substring(2);
     }
     return undefined;
-  });
+  }, [location.pathname]);
+
+  const setProfileUsername = (username: string | undefined) => {
+    if (username) {
+      navigate(`/@${username}`);
+    } else {
+      navigate('/profile');
+    }
+  };
 
   const { user, profile, loading: authLoading } = useAuth();
 
@@ -455,7 +475,7 @@ function AppContent() {
 
       await linkWithPopup(user, provider);
       setLinkSuccess('Hesap başarıyla bağlandı.');
-      playSuccess();
+      
     } catch (error: any) {
       console.error("Link account error:", error);
       if (error.code === 'auth/credential-already-in-use') {
@@ -498,7 +518,7 @@ function AppContent() {
 
   const handleBulkDeleteLogs = () => {
     if (selectedLogs.length === 0) return;
-    playDelete();
+    
     setData(prev => {
       const filteredLogs = prev.logs.filter(log => !selectedLogs.includes(log.id));
       let updatedLogs = filteredLogs;
@@ -558,11 +578,11 @@ function AppContent() {
     localStorage.setItem('hatim_tutorial_seen', 'true');
   };
 
-  // Sounds
-  const [playClick] = useSound(SOUNDS.click, { soundEnabled: isSoundEnabled, volume: 0.5, preload: false });
-  const [playSuccess] = useSound(SOUNDS.success, { soundEnabled: isSoundEnabled, volume: 0.5, preload: false });
-  const [playDelete] = useSound(SOUNDS.delete, { soundEnabled: isSoundEnabled, volume: 0.5, preload: false });
-  const [playOpen] = useSound(SOUNDS.open, { soundEnabled: isSoundEnabled, volume: 0.5, preload: false });
+  // Sounds removed
+  const playClick = () => {};
+  const playSuccess = () => {};
+  const playDelete = () => {};
+  const playOpen = () => {};
   
   // Form States
   const [newPageInput, setNewPageInput] = useState<string>('');
@@ -794,7 +814,7 @@ function AppContent() {
   };
 
   const handleJuzClick = (juz: number) => {
-    playClick();
+    
     if (startJuzSelection === null) {
       setStartJuzSelection(juz);
     } else {
@@ -1335,7 +1355,7 @@ function AppContent() {
                 Okumaya Başla
               </LiquidGlassButton>
               <button 
-                onClick={() => handleProtectedAction(() => { playOpen(); setIsAddLogOpen(true); })}
+                onClick={() => handleProtectedAction(() => { setIsAddLogOpen(true); })}
                 className="p-4 bg-white dark:bg-neutral-800 border border-sage-200 dark:border-neutral-700 rounded-2xl text-sage-600 dark:text-white hover:bg-sage-50 transition-colors"
                 title="Manuel Kayıt Ekle"
               >
@@ -1343,7 +1363,7 @@ function AppContent() {
               </button>
             </div>
             <button 
-              onClick={() => handleProtectedAction(() => { playOpen(); setIsQuranReaderOpen(true); })}
+              onClick={() => handleProtectedAction(() => {  setIsQuranReaderOpen(true); })}
               className="w-full py-4 px-6 rounded-2xl font-bold flex items-center justify-center gap-2 bg-gradient-to-r from-emerald-500 to-teal-500 text-white shadow-lg shadow-emerald-500/20 hover:opacity-90 transition-opacity"
             >
               <Mic size={20} />
@@ -1364,28 +1384,28 @@ function AppContent() {
             <HistoryIcon size={18} className="text-sage-600" />
             <h2 className="text-lg font-bold text-sage-800">Son Okumalar</h2>
           </div>
-          <button onClick={() => { playClick(); setActiveView('history'); }} className="text-sage-700 dark:text-sage-300 text-sm font-semibold hover:underline">Tümü</button>
+          <button onClick={() => { setActiveView('history'); }} className="text-sage-700 dark:text-sage-300 text-sm font-semibold hover:underline">Tümü</button>
         </div>
 
         <div className="space-y-3">
           {activeTaskLogs.slice(0, 5).map((log) => (
-            <div key={log.id} className="bg-white dark:bg-sage-100 rounded-2xl p-4 border border-sage-100 shadow-sm flex items-center justify-between group">
+            <div key={log.id} className="bg-white dark:bg-neutral-900 rounded-2xl p-4 border border-sage-100 dark:border-neutral-800 shadow-sm flex items-center justify-between group">
               <div className="flex items-center gap-4">
-                <div className="bg-sage-50 p-3 rounded-xl text-sage-600">
+                <div className="bg-sage-50 dark:bg-neutral-800 p-3 rounded-xl text-sage-600 dark:text-sage-400">
                   <Calendar size={20} />
                 </div>
                 <div>
-                  <p className="text-sm font-bold text-sage-800">
+                  <p className="text-sm font-bold text-sage-800 dark:text-white">
                     {new Date(log.date).toLocaleDateString('tr-TR', { day: 'numeric', month: 'long' })}
                   </p>
-                  <p className="text-xs text-sage-600 dark:text-sage-600">
-                    {log.pagesRead} sayfa • <span className="font-semibold text-sage-700 dark:text-sage-300">Sayfa {log.absolutePage}</span>
+                  <p className="text-xs text-sage-600 dark:text-neutral-400">
+                    {log.pagesRead} sayfa • <span className="font-semibold text-sage-800 dark:text-neutral-300">Sayfa {log.absolutePage}</span>
                   </p>
                 </div>
               </div>
               <button 
                 onClick={() => handleDeleteLog(log.id)}
-                className="p-2 text-sage-200 hover:text-red-500 opacity-0 group-hover:opacity-100 transition-opacity"
+                className="p-2 text-sage-200 dark:text-neutral-600 hover:text-red-500 dark:hover:text-red-400 opacity-0 group-hover:opacity-100 transition-opacity"
               >
                 <Trash2 size={18} />
               </button>
@@ -1401,9 +1421,9 @@ function AppContent() {
 
       <footer className="pt-8 pb-4 text-center text-xs text-sage-600 dark:text-neutral-400">
         <div className="flex justify-center gap-4 mb-2">
-          <a href="/privacy" onClick={(e) => { e.preventDefault(); setActiveView('privacy'); window.history.pushState({}, '', '/privacy'); }} className="text-sage-600 dark:text-neutral-400 hover:text-sage-900 dark:hover:text-neutral-200 transition-colors">Gizlilik Politikası</a>
+          <a href="/privacy" onClick={(e) => { e.preventDefault(); setActiveView('privacy'); }} className="text-sage-600 dark:text-neutral-400 hover:text-sage-900 dark:hover:text-neutral-200 transition-colors">Gizlilik Politikası</a>
           <span>•</span>
-          <a href="/terms" onClick={(e) => { e.preventDefault(); setActiveView('terms'); window.history.pushState({}, '', '/terms'); }} className="text-sage-600 dark:text-neutral-400 hover:text-sage-900 dark:hover:text-neutral-200 transition-colors">Kullanım Koşulları</a>
+          <a href="/terms" onClick={(e) => { e.preventDefault(); setActiveView('terms'); }} className="text-sage-600 dark:text-neutral-400 hover:text-sage-900 dark:hover:text-neutral-200 transition-colors">Kullanım Koşulları</a>
         </div>
         <p>© 2026 HatimPro. Tüm hakları saklıdır.</p>
       </footer>
@@ -2078,7 +2098,7 @@ function AppContent() {
             
             <div className="bg-white dark:bg-neutral-900 rounded-2xl border border-sage-100 dark:border-neutral-800 overflow-hidden shadow-sm mt-4">
               <button 
-                onClick={() => { playClick(); setActiveView('privacy'); window.history.pushState({}, '', '/privacy'); }}
+                onClick={() => { playClick(); setActiveView('privacy');  }}
                 className="w-full flex items-center justify-between p-4 hover:bg-sage-50 dark:hover:bg-neutral-800 transition-colors border-b border-sage-100 dark:border-neutral-800"
               >
                 <div className="flex items-center gap-3">
@@ -2088,7 +2108,7 @@ function AppContent() {
                 <ChevronRight className="text-sage-400" size={20} />
               </button>
               <button 
-                onClick={() => { playClick(); setActiveView('terms'); window.history.pushState({}, '', '/terms'); }}
+                onClick={() => { playClick(); setActiveView('terms');  }}
                 className="w-full flex items-center justify-between p-4 hover:bg-sage-50 dark:hover:bg-neutral-800 transition-colors"
               >
                 <div className="flex items-center gap-3">
@@ -2300,7 +2320,7 @@ function AppContent() {
                       username={profileUsername} 
                       onBack={() => {
                         setActiveView('more');
-                        window.history.pushState({}, '', '/');
+                        
                       }} 
                       playClick={playClick} 
                     />
@@ -2369,7 +2389,7 @@ function AppContent() {
                       type="privacy" 
                       onBack={() => {
                         setActiveView('settings');
-                        window.history.pushState({}, '', '/');
+                        
                       }} 
                     />
                   </Suspense>
@@ -2382,7 +2402,7 @@ function AppContent() {
                       type="terms" 
                       onBack={() => {
                         setActiveView('settings');
-                        window.history.pushState({}, '', '/');
+                        
                       }} 
                     />
                   </Suspense>
@@ -2394,7 +2414,7 @@ function AppContent() {
                     <LazyDataDeletionPage 
                       onBack={() => {
                         setActiveView('settings');
-                        window.history.pushState({}, '', '/');
+                        
                       }} 
                     />
                   </Suspense>

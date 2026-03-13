@@ -22,6 +22,7 @@ import '@fontsource/scheherazade-new/400.css';
 import '@fontsource/scheherazade-new/500.css';
 import '@fontsource/scheherazade-new/600.css';
 import '@fontsource/scheherazade-new/700.css';
+import { BrowserRouter } from 'react-router-dom';
 import App from './App.tsx';
 import './index.css';
 import {AuthProvider} from './contexts/AuthContext';
@@ -48,7 +49,9 @@ createRoot(document.getElementById('root')!).render(
     {/* @ts-ignore */}
     <ThemeProvider attribute="class" defaultTheme="dark" forcedTheme="dark" enableSystem={false}>
       <AuthProvider>
-        <App />
+        <BrowserRouter>
+          <App />
+        </BrowserRouter>
       </AuthProvider>
     </ThemeProvider>
   </StrictMode>,
