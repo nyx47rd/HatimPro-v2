@@ -99,19 +99,17 @@ const recalculateTaskLogs = (logs: ReadingLog[], task: HatimTask) => {
   };
 };
 
-import { LegalPage } from './components/LegalPage';
-import { DataDeletionPage } from './components/DataDeletionPage';
-import { GoogleOneTap } from './components/GoogleOneTap';
-
 const LazyZikirPage = React.lazy(() => import('./components/ZikirPage').then(module => ({ default: module.ZikirPage })));
 const LazyProfilePage = React.lazy(() => import('./components/ProfilePage').then(module => ({ default: module.ProfilePage })));
 const LazyLeaderboardPage = React.lazy(() => import('./components/LeaderboardPage').then(module => ({ default: module.LeaderboardPage })));
 const LazyStatsPage = React.lazy(() => import('./components/StatsPage').then(module => ({ default: module.StatsPage })));
 const LazyNotificationsPanel = React.lazy(() => import('./components/NotificationsPanel').then(module => ({ default: module.NotificationsPanel })));
-
 const LazyHatimRoomsPage = React.lazy(() => import('./components/HatimRoomsPage').then(module => ({ default: module.HatimRoomsPage })));
-import { TutorialOverlay } from './components/TutorialOverlay';
-import { QuranReader } from './components/QuranReader';
+const LazyTutorialOverlay = React.lazy(() => import('./components/TutorialOverlay').then(module => ({ default: module.TutorialOverlay })));
+const LazyQuranReader = React.lazy(() => import('./components/QuranReader').then(module => ({ default: module.QuranReader })));
+const LazyLegalPage = React.lazy(() => import('./components/LegalPage').then(module => ({ default: module.LegalPage })));
+const LazyDataDeletionPage = React.lazy(() => import('./components/DataDeletionPage').then(module => ({ default: module.DataDeletionPage })));
+const LazyGoogleOneTap = React.lazy(() => import('./components/GoogleOneTap').then(module => ({ default: module.GoogleOneTap })));
 
 type View = 'home' | 'tasks' | 'history' | 'settings' | 'zikir' | 'hatim-rooms' | 'profile' | 'privacy' | 'terms' | 'more' | 'data-deletion' | 'leaderboard' | 'stats';
 
@@ -651,7 +649,7 @@ function AppContent() {
     }
     const timer = setTimeout(() => {
       setShowSplash(false);
-    }, 2500);
+    }, 800); // Reduced from 2500ms to 800ms for faster startup
     return () => clearTimeout(timer);
   }, [isSplashEnabled]);
 
@@ -2135,7 +2133,9 @@ function AppContent() {
 
   return (
     <div className="min-h-screen bg-sage-50 dark:bg-black">
-      <GoogleOneTap />
+      <Suspense fallback={null}>
+        <LazyGoogleOneTap />
+      </Suspense>
       <AnimatePresence mode="wait">
         {showSplash || authLoading ? (
           <motion.div
@@ -2216,7 +2216,9 @@ function AppContent() {
           >
             <AnimatePresence>
               {showTutorial && (
-                <TutorialOverlay onClose={handleCloseTutorial} />
+                <Suspense fallback={null}>
+                  <LazyTutorialOverlay onClose={handleCloseTutorial} />
+                </Suspense>
               )}
             </AnimatePresence>
 
@@ -2362,34 +2364,40 @@ function AppContent() {
               )}
               {activeView === 'privacy' && (
                 <div className="fixed inset-0 z-50 bg-sage-50 dark:bg-black overflow-y-auto">
-                  <LegalPage 
-                    type="privacy" 
-                    onBack={() => {
-                      setActiveView('settings');
-                      window.history.pushState({}, '', '/');
-                    }} 
-                  />
+                  <Suspense fallback={<div className="min-h-screen flex items-center justify-center"><div className="w-8 h-8 border-4 border-sage-500 border-t-transparent rounded-full animate-spin"></div></div>}>
+                    <LazyLegalPage 
+                      type="privacy" 
+                      onBack={() => {
+                        setActiveView('settings');
+                        window.history.pushState({}, '', '/');
+                      }} 
+                    />
+                  </Suspense>
                 </div>
               )}
               {activeView === 'terms' && (
                 <div className="fixed inset-0 z-50 bg-sage-50 dark:bg-black overflow-y-auto">
-                  <LegalPage 
-                    type="terms" 
-                    onBack={() => {
-                      setActiveView('settings');
-                      window.history.pushState({}, '', '/');
-                    }} 
-                  />
+                  <Suspense fallback={<div className="min-h-screen flex items-center justify-center"><div className="w-8 h-8 border-4 border-sage-500 border-t-transparent rounded-full animate-spin"></div></div>}>
+                    <LazyLegalPage 
+                      type="terms" 
+                      onBack={() => {
+                        setActiveView('settings');
+                        window.history.pushState({}, '', '/');
+                      }} 
+                    />
+                  </Suspense>
                 </div>
               )}
               {activeView === 'data-deletion' && (
                 <div className="fixed inset-0 z-50 bg-sage-50 dark:bg-black overflow-y-auto">
-                  <DataDeletionPage 
-                    onBack={() => {
-                      setActiveView('settings');
-                      window.history.pushState({}, '', '/');
-                    }} 
-                  />
+                  <Suspense fallback={<div className="min-h-screen flex items-center justify-center"><div className="w-8 h-8 border-4 border-sage-500 border-t-transparent rounded-full animate-spin"></div></div>}>
+                    <LazyDataDeletionPage 
+                      onBack={() => {
+                        setActiveView('settings');
+                        window.history.pushState({}, '', '/');
+                      }} 
+                    />
+                  </Suspense>
                 </div>
               )}
             </main>
@@ -2888,10 +2896,12 @@ function AppContent() {
 
       <AnimatePresence>
         {isQuranReaderOpen && (
-          <QuranReader 
-            onClose={() => setIsQuranReaderOpen(false)} 
-            playClick={playClick}
-          />
+          <Suspense fallback={<div className="fixed inset-0 z-50 bg-sage-50 dark:bg-black flex items-center justify-center"><div className="w-8 h-8 border-4 border-sage-500 border-t-transparent rounded-full animate-spin"></div></div>}>
+            <LazyQuranReader 
+              onClose={() => setIsQuranReaderOpen(false)} 
+              playClick={playClick}
+            />
+          </Suspense>
         )}
       </AnimatePresence>
 
