@@ -156,7 +156,7 @@ export default function App() {
 }
 
 function AppContent() {
-  const { updateAvailable, isChecking, lastCheckTime, checkForUpdates, applyUpdate, repo, updateRepo } = useGitHubUpdate();
+  const { updateAvailable, isChecking, lastCheckTime, checkStatus, checkForUpdates, applyUpdate, repo } = useGitHubUpdate();
   const [activeView, setActiveView] = useState<View>(() => {
     const path = window.location.pathname;
     if (path.startsWith('/@')) {
@@ -1998,29 +1998,23 @@ function AppContent() {
           <h3 className="text-sm font-bold text-sage-500 dark:text-neutral-400 uppercase tracking-widest mb-4">Sürüm Kontrolü</h3>
           
           <div className="space-y-4">
-            <div>
-              <label className="block text-xs font-semibold text-sage-500 mb-2 uppercase tracking-wider">GitHub Deposu (Kullanıcı/Depo)</label>
-              <div className="flex gap-2">
-                <input 
-                  type="text" 
-                  value={repo}
-                  onChange={(e) => updateRepo(e.target.value)}
-                  placeholder="Örn: yasar123/hatimpro"
-                  className="flex-1 bg-sage-50 dark:bg-neutral-800 border-2 border-sage-100 dark:border-neutral-700 rounded-xl px-4 py-2 text-sm font-bold text-sage-800 dark:text-white focus:border-sage-500 focus:outline-none transition-all"
-                />
+            {!repo && (
+              <div className="p-4 bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-800 rounded-2xl">
+                <p className="text-sm text-amber-800 dark:text-amber-400 font-medium">
+                  GitHub deposu yapılandırılmamış. Güncellemeleri alabilmek için lütfen ortam değişkenlerine <code className="bg-amber-100 dark:bg-amber-900/40 px-1 rounded">VITE_GITHUB_REPO</code> ekleyin.
+                </p>
               </div>
-              <p className="text-[10px] text-sage-400 mt-1">Uygulamanın güncellemeleri bu depodan kontrol edilir.</p>
-            </div>
+            )}
 
             <div className="flex items-center justify-between p-4 bg-sage-50 dark:bg-neutral-800 rounded-2xl border border-sage-100 dark:border-neutral-700">
               <div>
                 <p className="font-bold text-sage-800 dark:text-white text-sm">Güncelleme Durumu</p>
                 <p className="text-xs text-sage-500 dark:text-neutral-400 mt-1">
-                  {updateAvailable 
-                    ? <span className="text-amber-600 font-bold">Yeni sürüm mevcut!</span>
-                    : lastCheckTime 
-                      ? `Son kontrol: ${lastCheckTime.toLocaleTimeString('tr-TR')}`
-                      : 'Henüz kontrol edilmedi'}
+                  {checkStatus === 'checking' ? 'Kontrol ediliyor...' :
+                   checkStatus === 'available' ? <span className="text-amber-600 font-bold">Yeni sürüm mevcut!</span> :
+                   checkStatus === 'up-to-date' ? <span className="text-emerald-600 font-bold">Sürümünüz güncel</span> :
+                   checkStatus === 'error' ? <span className="text-red-500">Kontrol başarısız</span> :
+                   lastCheckTime ? `Son kontrol: ${lastCheckTime.toLocaleTimeString('tr-TR')}` : 'Henüz kontrol edilmedi'}
                 </p>
               </div>
               <button 
