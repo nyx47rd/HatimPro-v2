@@ -1723,22 +1723,48 @@ function AppContent() {
                       <button 
                         onClick={async () => {
                           try {
+                            let currentSub = pushSubscription;
+                            
+                            // Eğer abonelik yoksa tekrar almayı dene
+                            if (!currentSub && 'serviceWorker' in navigator) {
+                              const reg = await navigator.serviceWorker.ready;
+                              currentSub = await reg.pushManager.getSubscription();
+                              if (!currentSub) {
+                                const publicVapidKey = import.meta.env.VITE_VAPID_PUBLIC_KEY || 'BEryiIKVG98nuPG9_yjLcUIc9ZPP2ruWPD3LVrZAo0WAijZ4B-Q55NC_LkjNTxZg4dn96PCAeWtk0tVnX4dFxPU';
+                                currentSub = await reg.pushManager.subscribe({
+                                  userVisibleOnly: true,
+                                  applicationServerKey: urlBase64ToUint8Array(publicVapidKey)
+                                });
+                              }
+                              setPushSubscription(currentSub);
+                            }
+
+                            if (!currentSub) {
+                              setMfaError('Bildirim aboneliği alınamadı. Lütfen izni yenileyin.');
+                              return;
+                            }
+
                             const response = await fetch('/api/notifications/send', {
                               method: 'POST',
                               body: JSON.stringify({
                                 title: 'Hatim Pro Test',
                                 body: 'Sunucu üzerinden gönderilen test bildirimi!',
                                 url: '/',
-                                subscription: pushSubscription
+                                subscription: currentSub
                               }),
                               headers: { 'content-type': 'application/json' }
                             });
+                            
                             if (response.ok) {
                               setMfaSuccess('Test bildirimi gönderildi!');
                               setTimeout(() => setMfaSuccess(null), 3000);
+                            } else {
+                              const errData = await response.json();
+                              setMfaError(`Hata: ${errData.details || response.statusText}`);
                             }
-                          } catch (e) {
+                          } catch (e: any) {
                             console.error(e);
+                            setMfaError(`Bağlantı hatası: ${e.message}`);
                           }
                         }}
                         className="text-xs font-bold px-3 py-1.5 rounded-lg bg-blue-100 text-blue-600 dark:bg-blue-900/30 dark:text-blue-400"
