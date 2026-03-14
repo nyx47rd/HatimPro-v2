@@ -3,8 +3,8 @@ self.addEventListener('push', function(event) {
     const data = event.data.json();
     const options = {
       body: data.body,
-      icon: '/icon-192x192.png',
-      badge: '/badge-72x72.png',
+      icon: '/pwa-192x192.svg',
+      badge: '/favicon.svg',
       data: {
         url: data.url || '/'
       }

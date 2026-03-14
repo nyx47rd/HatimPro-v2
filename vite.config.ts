@@ -49,7 +49,8 @@ export default defineConfig(({mode}) => {
           globPatterns: ['**/*.{js,css,html,svg,png,ico}'],
           cleanupOutdatedCaches: true,
           clientsClaim: true,
-          skipWaiting: true
+          skipWaiting: true,
+          importScripts: ['/push-sw.js']
         },
         devOptions: {
           enabled: true

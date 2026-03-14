@@ -310,7 +310,7 @@ function AppContent() {
     const permission = await Notification.requestPermission();
     if (permission === 'granted') {
       try {
-        const registration = await navigator.serviceWorker.register('/sw.js');
+        const registration = await navigator.serviceWorker.ready;
         const publicVapidKey = import.meta.env.VITE_VAPID_PUBLIC_KEY || 'BEryiIKVG98nuPG9_yjLcUIc9ZPP2ruWPD3LVrZAo0WAijZ4B-Q55NC_LkjNTxZg4dn96PCAeWtk0tVnX4dFxPU';
         
         if (publicVapidKey) {
@@ -342,12 +342,12 @@ function AppContent() {
 
   useEffect(() => {
     if ('serviceWorker' in navigator) {
-      navigator.serviceWorker.register('/sw.js')
+      navigator.serviceWorker.ready
         .then(async (registration) => {
           const subscription = await registration.pushManager.getSubscription();
           if (subscription) setPushSubscription(subscription);
         })
-        .catch(err => console.error('SW registration failed:', err));
+        .catch(err => console.error('SW ready failed:', err));
     }
   }, []);
 
