@@ -4,7 +4,7 @@ self.addEventListener('push', function(event) {
     const options = {
       body: data.body,
       icon: '/pwa-192x192.svg',
-      badge: '/favicon.svg',
+      badge: '/badge.svg',
       data: {
         url: data.url || '/'
       }

@@ -48,6 +48,8 @@ import {
 } from 'lucide-react';
 import { Drawer } from 'vaul';
 import { motion, AnimatePresence } from 'motion/react';
+import gsap from 'gsap';
+import { useGSAP } from '@gsap/react';
 import { HatimData, ReadingLog, HatimTask } from './types';
 import { useAuth } from './contexts/AuthContext';
 import { AuthModal } from './components/AuthModal';
@@ -187,6 +189,37 @@ export default function App() {
 }
 
 function AppContent() {
+  const containerRef = useRef<HTMLDivElement>(null);
+
+  useGSAP(() => {
+    // GSAP Animation for sidebar links and main content
+    if (containerRef.current) {
+      const tl = gsap.timeline({ delay: 0.2 });
+      tl.from('.sidebar-link', {
+        x: -20,
+        opacity: 0,
+        duration: 0.4,
+        stagger: 0.05,
+        ease: 'power2.out',
+        clearProps: 'all'
+      })
+      .from('.main-content-area', {
+        y: 20,
+        opacity: 0,
+        duration: 0.5,
+        ease: 'power3.out',
+        clearProps: 'all'
+      }, "-=0.2")
+      .from('.bottom-nav', {
+        y: 100,
+        opacity: 0,
+        duration: 0.5,
+        ease: 'power3.out',
+        clearProps: 'all'
+      }, "-=0.3");
+    }
+  }, { scope: containerRef });
+
   const { updateAvailable, isChecking, lastCheckTime, checkStatus, checkForUpdates, applyUpdate, repo } = useGitHubUpdate();
   
   const location = useLocation();
@@ -448,6 +481,7 @@ function AppContent() {
   const [totpCode, setTotpCode] = useState('');
   const [mfaError, setMfaError] = useState<string | null>(null);
   const [mfaSuccess, setMfaSuccess] = useState<string | null>(null);
+  const [notificationMsg, setNotificationMsg] = useState<{type: 'success'|'error', text: string} | null>(null);
   const [isMfaEnrolled, setIsMfaEnrolled] = useState(false);
 
   const [isChangingPassword, setIsChangingPassword] = useState(false);
@@ -1740,7 +1774,7 @@ function AppContent() {
                             }
 
                             if (!currentSub) {
-                              setMfaError('Bildirim aboneliği alınamadı. Lütfen izni yenileyin.');
+                              setNotificationMsg({ type: 'error', text: 'Bildirim aboneliği alınamadı. Lütfen izni yenileyin.' });
                               return;
                             }
 
@@ -1756,15 +1790,15 @@ function AppContent() {
                             });
                             
                             if (response.ok) {
-                              setMfaSuccess('Test bildirimi gönderildi!');
-                              setTimeout(() => setMfaSuccess(null), 3000);
+                              setNotificationMsg({ type: 'success', text: 'Test bildirimi gönderildi!' });
+                              setTimeout(() => setNotificationMsg(null), 3000);
                             } else {
                               const errData = await response.json();
-                              setMfaError(`Hata: ${errData.details || response.statusText}`);
+                              setNotificationMsg({ type: 'error', text: `Hata: ${errData.details || response.statusText}` });
                             }
                           } catch (e: any) {
                             console.error(e);
-                            setMfaError(`Bağlantı hatası: ${e.message}`);
+                            setNotificationMsg({ type: 'error', text: `Bağlantı hatası: ${e.message}` });
                           }
                         }}
                         className="text-xs font-bold px-3 py-1.5 rounded-lg bg-blue-100 text-blue-600 dark:bg-blue-900/30 dark:text-blue-400"
@@ -1774,6 +1808,11 @@ function AppContent() {
                     )}
                   </div>
                 </div>
+                {notificationMsg && (
+                  <div className={`mt-2 p-2 rounded-lg text-xs font-bold text-white text-center ${notificationMsg.type === 'success' ? 'bg-emerald-500' : 'bg-red-500'}`}>
+                    {notificationMsg.text}
+                  </div>
+                )}
 
                 {/* 2FA Section */}
                 <div className="mt-4 p-4 bg-sage-50 dark:bg-neutral-800 rounded-2xl border border-sage-100 dark:border-neutral-700">
@@ -2299,7 +2338,7 @@ function AppContent() {
   );
 
   return (
-    <div className="min-h-screen bg-sage-50 dark:bg-black">
+    <div ref={containerRef} className="min-h-screen bg-sage-50 dark:bg-black">
       <Suspense fallback={null}>
         <LazyGoogleOneTap />
       </Suspense>
@@ -2390,38 +2429,38 @@ function AppContent() {
                 </h1>
               </div>
               <nav className="flex-1 p-4 space-y-2 overflow-y-auto custom-scrollbar">
-                <button onClick={() => setActiveView('home')} className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl transition-colors ${activeView === 'home' ? 'bg-sage-100 dark:bg-neutral-800 text-sage-800 dark:text-white font-bold' : 'text-sage-600 dark:text-neutral-400 hover:bg-sage-50 dark:hover:bg-neutral-800/50'}`}>
+                <button onClick={() => setActiveView('home')} className={`sidebar-link w-full flex items-center gap-3 px-4 py-3 rounded-xl transition-colors ${activeView === 'home' ? 'bg-sage-100 dark:bg-neutral-800 text-sage-800 dark:text-white font-bold' : 'text-sage-600 dark:text-neutral-400 hover:bg-sage-50 dark:hover:bg-neutral-800/50'}`}>
                   <Home size={20} strokeWidth={activeView === 'home' ? 2.5 : 2} />
                   Ana Sayfa
                 </button>
-                <button onClick={() => handleProtectedAction(() => setActiveView('tasks'))} className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl transition-colors ${activeView === 'tasks' ? 'bg-sage-100 dark:bg-neutral-800 text-sage-800 dark:text-white font-bold' : 'text-sage-600 dark:text-neutral-400 hover:bg-sage-50 dark:hover:bg-neutral-800/50'}`}>
+                <button onClick={() => handleProtectedAction(() => setActiveView('tasks'))} className={`sidebar-link w-full flex items-center gap-3 px-4 py-3 rounded-xl transition-colors ${activeView === 'tasks' ? 'bg-sage-100 dark:bg-neutral-800 text-sage-800 dark:text-white font-bold' : 'text-sage-600 dark:text-neutral-400 hover:bg-sage-50 dark:hover:bg-neutral-800/50'}`}>
                   <ListTodo size={20} strokeWidth={activeView === 'tasks' ? 2.5 : 2} />
                   Görevler
                 </button>
-                <button onClick={() => setActiveView('zikir')} className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl transition-colors ${activeView === 'zikir' ? 'bg-sage-100 dark:bg-neutral-800 text-sage-800 dark:text-white font-bold' : 'text-sage-600 dark:text-neutral-400 hover:bg-sage-50 dark:hover:bg-neutral-800/50'}`}>
+                <button onClick={() => setActiveView('zikir')} className={`sidebar-link w-full flex items-center gap-3 px-4 py-3 rounded-xl transition-colors ${activeView === 'zikir' ? 'bg-sage-100 dark:bg-neutral-800 text-sage-800 dark:text-white font-bold' : 'text-sage-600 dark:text-neutral-400 hover:bg-sage-50 dark:hover:bg-neutral-800/50'}`}>
                   <RotateCcw size={20} strokeWidth={activeView === 'zikir' ? 2.5 : 2} />
                   Zikir
                 </button>
-                <button onClick={() => handleProtectedAction(() => setActiveView('hatim-rooms'))} className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl transition-colors ${activeView === 'hatim-rooms' ? 'bg-sage-100 dark:bg-neutral-800 text-sage-800 dark:text-white font-bold' : 'text-sage-600 dark:text-neutral-400 hover:bg-sage-50 dark:hover:bg-neutral-800/50'}`}>
+                <button onClick={() => handleProtectedAction(() => setActiveView('hatim-rooms'))} className={`sidebar-link w-full flex items-center gap-3 px-4 py-3 rounded-xl transition-colors ${activeView === 'hatim-rooms' ? 'bg-sage-100 dark:bg-neutral-800 text-sage-800 dark:text-white font-bold' : 'text-sage-600 dark:text-neutral-400 hover:bg-sage-50 dark:hover:bg-neutral-800/50'}`}>
                   <Book size={20} strokeWidth={activeView === 'hatim-rooms' ? 2.5 : 2} />
                   Hatim Odaları
                 </button>
-                <button onClick={() => { setProfileUsername(undefined); setActiveView('profile'); }} className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl transition-colors ${activeView === 'profile' ? 'bg-sage-100 dark:bg-neutral-800 text-sage-800 dark:text-white font-bold' : 'text-sage-600 dark:text-neutral-400 hover:bg-sage-50 dark:hover:bg-neutral-800/50'}`}>
+                <button onClick={() => { setProfileUsername(undefined); setActiveView('profile'); }} className={`sidebar-link w-full flex items-center gap-3 px-4 py-3 rounded-xl transition-colors ${activeView === 'profile' ? 'bg-sage-100 dark:bg-neutral-800 text-sage-800 dark:text-white font-bold' : 'text-sage-600 dark:text-neutral-400 hover:bg-sage-50 dark:hover:bg-neutral-800/50'}`}>
                   <User size={20} strokeWidth={activeView === 'profile' ? 2.5 : 2} />
                   Profil
                 </button>
                 
                 <div className="pt-4 pb-2">
                   <div className="px-4 text-[10px] font-bold text-sage-400 uppercase tracking-wider mb-2">Keşfet & Ayarlar</div>
-                  <button onClick={() => { playClick(); setActiveView('leaderboard'); }} className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl transition-colors ${activeView === 'leaderboard' ? 'bg-sage-100 dark:bg-neutral-800 text-sage-800 dark:text-white font-bold' : 'text-sage-600 dark:text-neutral-400 hover:bg-sage-50 dark:hover:bg-neutral-800/50'}`}>
+                  <button onClick={() => { playClick(); setActiveView('leaderboard'); }} className={`sidebar-link w-full flex items-center gap-3 px-4 py-3 rounded-xl transition-colors ${activeView === 'leaderboard' ? 'bg-sage-100 dark:bg-neutral-800 text-sage-800 dark:text-white font-bold' : 'text-sage-600 dark:text-neutral-400 hover:bg-sage-50 dark:hover:bg-neutral-800/50'}`}>
                     <Trophy size={20} strokeWidth={activeView === 'leaderboard' ? 2.5 : 2} />
                     Liderlik Tablosu
                   </button>
-                  <button onClick={() => { playClick(); setActiveView('stats'); }} className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl transition-colors ${activeView === 'stats' ? 'bg-sage-100 dark:bg-neutral-800 text-sage-800 dark:text-white font-bold' : 'text-sage-600 dark:text-neutral-400 hover:bg-sage-50 dark:hover:bg-neutral-800/50'}`}>
+                  <button onClick={() => { playClick(); setActiveView('stats'); }} className={`sidebar-link w-full flex items-center gap-3 px-4 py-3 rounded-xl transition-colors ${activeView === 'stats' ? 'bg-sage-100 dark:bg-neutral-800 text-sage-800 dark:text-white font-bold' : 'text-sage-600 dark:text-neutral-400 hover:bg-sage-50 dark:hover:bg-neutral-800/50'}`}>
                     <BarChart2 size={20} strokeWidth={activeView === 'stats' ? 2.5 : 2} />
                     İstatistikler
                   </button>
-                  <button onClick={() => { playClick(); setActiveView('settings'); }} className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl transition-colors ${activeView === 'settings' ? 'bg-sage-100 dark:bg-neutral-800 text-sage-800 dark:text-white font-bold' : 'text-sage-600 dark:text-neutral-400 hover:bg-sage-50 dark:hover:bg-neutral-800/50'}`}>
+                  <button onClick={() => { playClick(); setActiveView('settings'); }} className={`sidebar-link w-full flex items-center gap-3 px-4 py-3 rounded-xl transition-colors ${activeView === 'settings' ? 'bg-sage-100 dark:bg-neutral-800 text-sage-800 dark:text-white font-bold' : 'text-sage-600 dark:text-neutral-400 hover:bg-sage-50 dark:hover:bg-neutral-800/50'}`}>
                     <Settings size={20} strokeWidth={activeView === 'settings' ? 2.5 : 2} />
                     Ayarlar
                   </button>
@@ -2465,7 +2504,7 @@ function AppContent() {
               </div>
             </aside>
 
-            <div className="flex-1 flex flex-col min-w-0 pb-20 md:pb-0 relative">
+            <div className="main-content-area flex-1 flex flex-col min-w-0 pb-20 md:pb-0 relative">
               <AnimatePresence>
                 {showTutorial && (
                   <Suspense fallback={null}>
@@ -2644,7 +2683,7 @@ function AppContent() {
               </main>
 
               {/* Bottom Navbar (Mobile Only) */}
-              <nav className="md:hidden fixed bottom-0 left-0 right-0 bg-white dark:bg-black border-t border-sage-200 dark:border-white/10 px-4 py-3 pb-5 z-[60]">
+              <nav className="bottom-nav md:hidden fixed bottom-0 left-0 right-0 bg-white dark:bg-black border-t border-sage-200 dark:border-white/10 px-4 py-3 pb-5 z-[60]">
                   <div className="max-w-md mx-auto flex justify-between items-center">
                     <button 
                       onClick={() => { playClick(); setActiveView('home'); }}
