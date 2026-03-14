@@ -381,7 +381,7 @@ export const ZikirPage: React.FC<ZikirPageProps> = ({ onBack, playClick, joinSes
         initial={{ opacity: 0, x: -20 }}
         animate={{ opacity: 1, x: 0 }}
         exit={{ opacity: 0, x: -20 }}
-        className="flex-1 flex flex-col p-6 overflow-y-auto"
+        className="flex-1 flex flex-col px-6 pt-[calc(1.5rem+env(safe-area-inset-top))] pb-[calc(6rem+env(safe-area-inset-bottom))] overflow-y-auto"
       >
         <div className="flex justify-between items-center mb-6">
           <h2 className="text-2xl font-bold text-white">Görevlerim</h2>
@@ -415,8 +415,8 @@ export const ZikirPage: React.FC<ZikirPageProps> = ({ onBack, playClick, joinSes
                   className="bg-neutral-900 border border-neutral-800 rounded-3xl p-5 cursor-pointer relative overflow-hidden group"
                 >
                   <div className="flex justify-between items-start mb-3 relative z-10">
-                    <div className="flex-1 pr-4">
-                      <h3 className="text-lg font-bold text-white">{task.name}</h3>
+                    <div className="flex-1 pr-4 min-w-0">
+                      <h3 className="text-lg font-bold text-white truncate">{task.name}</h3>
                       <div className="flex items-center gap-3 mt-1 text-xs text-neutral-400">
                         <span className="flex items-center gap-1">
                           <Users size={12} /> {task.participants.length}
@@ -466,7 +466,7 @@ export const ZikirPage: React.FC<ZikirPageProps> = ({ onBack, playClick, joinSes
         initial={{ opacity: 0, scale: 0.95 }}
         animate={{ opacity: 1, scale: 1 }}
         exit={{ opacity: 0, scale: 0.95 }}
-        className="flex-1 flex flex-col items-center p-6 space-y-8 overflow-y-auto min-h-0"
+        className="flex-1 flex flex-col items-center px-6 pt-[calc(1.5rem+env(safe-area-inset-top))] pb-[calc(6rem+env(safe-area-inset-bottom))] space-y-8 overflow-y-auto min-h-0"
       >
         <div className="flex-1 flex flex-col items-center justify-center w-full space-y-8 min-h-min py-4">
           {/* Session Info */}
@@ -496,7 +496,7 @@ export const ZikirPage: React.FC<ZikirPageProps> = ({ onBack, playClick, joinSes
                 <span className="block text-7xl font-mono font-bold text-white tracking-tighter tabular-nums">
                   {activeTask.count}
                 </span>
-                <span className="text-neutral-500 text-sm font-medium mt-2 block uppercase tracking-widest">
+                <span className="text-neutral-500 text-sm font-medium mt-2 block uppercase tracking-widest truncate px-4 max-w-[220px] mx-auto">
                   {activeTask.name}
                 </span>
                 {activeTask.target && (
@@ -675,6 +675,7 @@ export const ZikirPage: React.FC<ZikirPageProps> = ({ onBack, playClick, joinSes
                       type="text"
                       value={newTaskName}
                       onChange={(e) => setNewTaskName(e.target.value)}
+                      maxLength={40}
                       placeholder="Örn: Subhanallah"
                       className="w-full bg-black border border-neutral-800 rounded-xl px-4 py-3 text-white focus:outline-none focus:border-white transition-colors"
                     />

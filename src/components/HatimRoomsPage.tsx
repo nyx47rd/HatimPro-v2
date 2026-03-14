@@ -519,7 +519,7 @@ export const HatimRoomsPage: React.FC<HatimRoomsPageProps> = ({ onBack, playClic
         initial={{ opacity: 0, x: -20 }}
         animate={{ opacity: 1, x: 0 }}
         exit={{ opacity: 0, x: -20 }}
-        className="flex-1 flex flex-col p-6 overflow-y-auto"
+        className="flex-1 flex flex-col px-6 pt-[calc(1.5rem+env(safe-area-inset-top))] pb-[calc(6rem+env(safe-area-inset-bottom))] overflow-y-auto"
       >
         <div className="flex justify-between items-center mb-6">
           <h2 className="text-2xl font-bold text-white">Hatim Odaları</h2>
@@ -552,8 +552,8 @@ export const HatimRoomsPage: React.FC<HatimRoomsPageProps> = ({ onBack, playClic
                   className="bg-neutral-900 border border-neutral-800 rounded-3xl p-5 cursor-pointer relative overflow-hidden group"
                 >
                   <div className="flex justify-between items-start mb-3 relative z-10">
-                    <div className="flex-1 pr-4">
-                      <h3 className="text-lg font-bold text-white">{session.name}</h3>
+                    <div className="flex-1 pr-4 min-w-0">
+                      <h3 className="text-lg font-bold text-white truncate">{session.name}</h3>
                       <div className="flex items-center gap-3 mt-1 text-xs text-neutral-400">
                         <span className="flex items-center gap-1">
                           <Users size={12} /> {session.participants.length}
@@ -601,7 +601,7 @@ export const HatimRoomsPage: React.FC<HatimRoomsPageProps> = ({ onBack, playClic
         initial={{ opacity: 0, scale: 0.95 }}
         animate={{ opacity: 1, scale: 1 }}
         exit={{ opacity: 0, scale: 0.95 }}
-        className="flex-1 flex flex-col p-6 space-y-6 overflow-y-auto"
+        className="flex-1 flex flex-col px-6 pt-[calc(1.5rem+env(safe-area-inset-top))] pb-[calc(6rem+env(safe-area-inset-bottom))] space-y-6 overflow-y-auto"
       >
         <div className="bg-neutral-800/80 backdrop-blur-md rounded-2xl p-4 w-full border border-neutral-700 shrink-0">
           <div className="flex justify-between items-center mb-2">
@@ -667,8 +667,8 @@ export const HatimRoomsPage: React.FC<HatimRoomsPageProps> = ({ onBack, playClic
           </AnimatePresence>
         </div>
 
-        <div className="text-center">
-          <h2 className="text-2xl font-bold text-white mb-2">{activeSession.name}</h2>
+        <div className="text-center w-full px-4">
+          <h2 className="text-2xl font-bold text-white mb-2 truncate">{activeSession.name}</h2>
           <div className="w-full bg-neutral-800 rounded-full h-2 mb-2">
             <div 
               className="bg-emerald-500 h-2 rounded-full transition-all duration-500" 
@@ -801,6 +801,7 @@ export const HatimRoomsPage: React.FC<HatimRoomsPageProps> = ({ onBack, playClic
                       type="text"
                       value={newSessionName}
                       onChange={(e) => setNewSessionName(e.target.value)}
+                      maxLength={40}
                       placeholder="Örn: Aile Hatmi"
                       className="w-full bg-black border border-neutral-800 rounded-xl px-4 py-3 text-white focus:outline-none focus:border-white transition-colors"
                     />

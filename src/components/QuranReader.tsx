@@ -453,7 +453,7 @@ export const QuranReader: React.FC<QuranReaderProps> = ({ onClose, playClick }) 
       </div>
 
       {/* Header */}
-      <div className="relative z-10 bg-white/5 backdrop-blur-xl border-b border-white/10 px-4 py-3 flex flex-col gap-3 shadow-sm">
+      <div className="relative z-10 bg-white/5 backdrop-blur-xl border-b border-white/10 px-4 pb-3 pt-[calc(0.75rem+env(safe-area-inset-top))] flex flex-col gap-3 shadow-sm">
         <div className="flex items-center justify-between">
           <button onClick={() => { playClick(); onClose(); }} className="p-2 hover:bg-white/10 rounded-full transition-colors">
             <ChevronLeft size={24} className="text-white" />

@@ -17,9 +17,9 @@ export function LegalPage({ type, onBack }: LegalPageProps) {
       initial={{ opacity: 0, y: 20 }}
       animate={{ opacity: 1, y: 0 }}
       exit={{ opacity: 0, y: -20 }}
-      className="min-h-screen bg-sage-50 dark:bg-black pb-20"
+      className="min-h-screen bg-sage-50 dark:bg-black pb-[calc(5rem+env(safe-area-inset-bottom))]"
     >
-      <header className="bg-white dark:bg-neutral-900 border-b border-sage-100 dark:border-neutral-800 sticky top-0 z-30">
+      <header className="bg-white dark:bg-neutral-900 border-b border-sage-100 dark:border-neutral-800 sticky top-0 z-30 pt-[env(safe-area-inset-top)]">
         <div className="max-w-3xl mx-auto px-4 h-16 flex items-center gap-4">
           <button 
             onClick={onBack}

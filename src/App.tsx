@@ -1387,9 +1387,9 @@ function AppContent() {
     <div className="space-y-8 pb-24">
       {/* Range Info Badge */}
       <div className="flex justify-center">
-        <div className="bg-sage-100/50 border border-sage-200 rounded-full px-4 py-1.5 flex items-center gap-2 text-sage-700 text-sm font-medium">
-          <Info size={14} />
-          <span>{activeTask.name}: {activeTask.startPage} - {activeTask.endPage}</span>
+        <div className="bg-sage-100/50 border border-sage-200 rounded-full px-4 py-1.5 flex items-center gap-2 text-sage-700 text-sm font-medium max-w-full overflow-hidden">
+          <Info size={14} className="shrink-0" />
+          <span className="truncate">{activeTask.name}: {activeTask.startPage} - {activeTask.endPage}</span>
         </div>
       </div>
 
@@ -1606,10 +1606,10 @@ function AppContent() {
 
               <div className="flex-1">
                 <div className="flex justify-between items-start mb-4">
-                  <div onClick={() => { playClick(); setData(prev => ({ ...prev, activeTaskId: task.id })); setActiveView('home'); }} className="cursor-pointer flex-1">
+                  <div onClick={() => { playClick(); setData(prev => ({ ...prev, activeTaskId: task.id })); setActiveView('home'); }} className="cursor-pointer flex-1 min-w-0 pr-2">
                     <h3 className="text-lg font-bold text-sage-800 dark:text-white flex items-center gap-2">
-                      {task.name}
-                      {task.isCompleted && <CheckCircle2 size={18} className="text-emerald-500 dark:text-white" />}
+                      <span className="truncate">{task.name}</span>
+                      {task.isCompleted && <CheckCircle2 size={18} className="text-emerald-500 dark:text-white shrink-0" />}
                     </h3>
                     <p className="text-sm text-sage-500 dark:text-neutral-400">{task.startPage} - {task.endPage}. Sayfalar</p>
                   </div>
@@ -2504,7 +2504,7 @@ function AppContent() {
               </div>
             </aside>
 
-            <div className="main-content-area flex-1 flex flex-col min-w-0 pb-20 md:pb-0 relative">
+            <div className="main-content-area flex-1 flex flex-col min-w-0 pb-[calc(5rem+env(safe-area-inset-bottom))] md:pb-0 relative">
               <AnimatePresence>
                 {showTutorial && (
                   <Suspense fallback={null}>
@@ -2514,7 +2514,7 @@ function AppContent() {
               </AnimatePresence>
 
               {/* Header (Mobile Only) */}
-              <header className="md:hidden bg-white dark:bg-neutral-900 border-b border-sage-200 dark:border-neutral-800 px-6 py-4 sticky top-0 z-30">
+              <header className="md:hidden bg-white dark:bg-neutral-900 border-b border-sage-200 dark:border-neutral-800 px-6 pb-4 pt-[calc(1rem+env(safe-area-inset-top))] sticky top-0 z-30">
                 <div className="max-w-2xl mx-auto flex justify-between items-center">
                   <h1 className="display text-2xl font-bold text-sage-800 dark:text-white tracking-tight flex items-center gap-2">
                     <img src="/favicon.svg" alt="HatimPro Logo" className="w-8 h-8" referrerPolicy="no-referrer" />
@@ -2683,7 +2683,7 @@ function AppContent() {
               </main>
 
               {/* Bottom Navbar (Mobile Only) */}
-              <nav className="bottom-nav md:hidden fixed bottom-0 left-0 right-0 bg-white dark:bg-black border-t border-sage-200 dark:border-white/10 px-4 py-3 pb-5 z-[60]">
+              <nav className="bottom-nav md:hidden fixed bottom-0 left-0 right-0 bg-white dark:bg-black border-t border-sage-200 dark:border-white/10 px-4 py-3 pb-[calc(1.25rem+env(safe-area-inset-bottom))] z-[60]">
                   <div className="max-w-md mx-auto flex justify-between items-center">
                     <button 
                       onClick={() => { playClick(); setActiveView('home'); }}
@@ -3003,6 +3003,7 @@ function AppContent() {
                         type="text" 
                         value={customTaskName}
                         onChange={(e) => setCustomTaskName(e.target.value)}
+                        maxLength={40}
                         placeholder="Örn: Ramazan Mukabelesi"
                         className="w-full bg-sage-50 border-2 border-sage-100 rounded-2xl px-4 py-3 font-bold text-sage-800 focus:border-sage-500 focus:outline-none transition-all"
                       />

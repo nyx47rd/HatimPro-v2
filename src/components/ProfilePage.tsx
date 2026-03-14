@@ -395,9 +395,9 @@ export const ProfilePage: React.FC<ProfilePageProps> = ({ username, onBack, play
   const isFollowing = currentUserProfile?.following?.includes(profile?.uid);
 
   return (
-    <div className="min-h-screen bg-black text-white pb-24">
+    <div className="min-h-screen bg-black text-white pb-[calc(6rem+env(safe-area-inset-bottom))]">
       {/* Header */}
-      <div className="sticky top-0 z-30 bg-black/80 backdrop-blur-xl border-b border-white/10 px-6 py-4 flex items-center justify-between">
+      <div className="sticky top-0 z-30 bg-black/80 backdrop-blur-xl border-b border-white/10 px-6 pb-4 pt-[calc(1rem+env(safe-area-inset-top))] flex items-center justify-between">
         <div className="flex items-center gap-4">
           <button onClick={onBack} className="p-2 -ml-2 hover:bg-white/10 rounded-full transition-colors">
             <ChevronLeft size={24} />
@@ -656,6 +656,7 @@ export const ProfilePage: React.FC<ProfilePageProps> = ({ username, onBack, play
                     type="text" 
                     value={editName}
                     onChange={(e) => setEditName(e.target.value)}
+                    maxLength={30}
                     className="w-full bg-white/5 border border-white/10 rounded-2xl px-4 py-3 focus:border-white focus:outline-none transition-all"
                   />
                 </div>
@@ -668,6 +669,7 @@ export const ProfilePage: React.FC<ProfilePageProps> = ({ username, onBack, play
                       type="text" 
                       value={editUsername}
                       onChange={(e) => setEditUsername(e.target.value)}
+                      maxLength={20}
                       className="w-full bg-white/5 border border-white/10 rounded-2xl pl-8 pr-4 py-3 focus:border-white focus:outline-none transition-all"
                     />
                   </div>
@@ -678,6 +680,7 @@ export const ProfilePage: React.FC<ProfilePageProps> = ({ username, onBack, play
                   <textarea 
                     value={editBio}
                     onChange={(e) => setEditBio(e.target.value)}
+                    maxLength={150}
                     rows={3}
                     className="w-full bg-white/5 border border-white/10 rounded-2xl px-4 py-3 focus:border-white focus:outline-none transition-all resize-none"
                   />

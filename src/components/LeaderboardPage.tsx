@@ -45,9 +45,9 @@ export const LeaderboardPage: React.FC<LeaderboardPageProps> = ({ onBack, playCl
   }, []);
 
   return (
-    <div className="min-h-screen bg-black text-white pb-24">
+    <div className="min-h-screen bg-black text-white pb-[calc(6rem+env(safe-area-inset-bottom))]">
       {/* Header */}
-      <div className="sticky top-0 z-30 bg-black/80 backdrop-blur-xl border-b border-white/10 px-6 py-4 flex items-center gap-4">
+      <div className="sticky top-0 z-30 bg-black/80 backdrop-blur-xl border-b border-white/10 px-6 pb-4 pt-[calc(1rem+env(safe-area-inset-top))] flex items-center gap-4">
         <button onClick={onBack} className="p-2 -ml-2 hover:bg-white/10 rounded-full transition-colors">
           <ChevronLeft size={24} />
         </button>
