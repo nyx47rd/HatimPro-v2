@@ -3208,7 +3208,7 @@ function AppContent() {
 
       <AnimatePresence>
         {isQuranReaderOpen && (
-          <Suspense fallback={<div className="fixed inset-0 z-50 bg-sage-50 dark:bg-black flex items-center justify-center"><div className="w-8 h-8 border-4 border-sage-500 border-t-transparent rounded-full animate-spin"></div></div>}>
+          <Suspense fallback={<div className="fixed inset-0 z-[70] bg-sage-50 dark:bg-black flex items-center justify-center"><div className="w-8 h-8 border-4 border-sage-500 border-t-transparent rounded-full animate-spin"></div></div>}>
             <LazyQuranReader 
               onClose={() => setIsQuranReaderOpen(false)} 
               playClick={playClick}

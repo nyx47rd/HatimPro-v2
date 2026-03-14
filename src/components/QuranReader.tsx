@@ -443,7 +443,7 @@ export const QuranReader: React.FC<QuranReaderProps> = ({ onClose, playClick }) 
       animate={{ opacity: 1, y: 0 }}
       exit={{ opacity: 0, y: '100%' }}
       transition={{ type: 'spring', damping: 25, stiffness: 200 }}
-      className="fixed inset-0 z-50 bg-[#0a0f16] text-white flex flex-col overflow-hidden"
+      className="fixed inset-0 z-[70] bg-[#0a0f16] text-white flex flex-col overflow-hidden"
     >
       {/* Liquid Glass Background Orbs */}
       <div className="absolute inset-0 overflow-hidden pointer-events-none">
@@ -513,9 +513,9 @@ export const QuranReader: React.FC<QuranReaderProps> = ({ onClose, playClick }) 
         )}
       </div>
 
-      {/* Floating Player Controls */}
-      <div className="absolute bottom-8 left-1/2 -translate-x-1/2 w-[90%] max-w-md z-40">
-        <div className="bg-white/10 backdrop-blur-xl border border-white/20 p-4 rounded-3xl shadow-[0_20px_40px_rgba(0,0,0,0.3)] flex items-center justify-between gap-4">
+      {/* Bottom Player Controls */}
+      <div className="absolute bottom-0 left-0 right-0 z-40 bg-[#0a0f16]/90 backdrop-blur-2xl border-t border-white/10 px-4 py-4 pb-[calc(1rem+env(safe-area-inset-bottom))]">
+        <div className="max-w-3xl mx-auto flex items-center justify-between gap-4">
           <div className="flex-1 min-w-0">
             <p className="text-sm font-bold text-white truncate">
               {surahData ? SURAH_NAMES_TR[surahData.number - 1] : ''}
