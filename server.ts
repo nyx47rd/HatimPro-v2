@@ -39,11 +39,12 @@ async function startServer() {
 
       if (subscription) {
         // subscription is the OneSignal subscription ID
-        payload.include_subscription_ids = [subscription];
-        payload.include_player_ids = [subscription]; // Fallback for older OneSignal API versions
+        payload.include_aliases = {
+          onesignal_id: [subscription]
+        };
       } else {
         // Send to all
-        payload.included_segments = ["All"];
+        payload.included_segments = ["Total Subscriptions"];
       }
 
       const response = await fetch('https://api.onesignal.com/notifications', {
