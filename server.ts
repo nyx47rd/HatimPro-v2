@@ -47,8 +47,14 @@ async function startServer() {
       };
 
       if (subscription) {
-        // subscription is the OneSignal subscription ID
-        payload.include_subscription_ids = [subscription];
+        // Check if it's a OneSignal UUID or a Firebase UID (external_id)
+        if (subscription.includes('-')) {
+          payload.include_subscription_ids = [subscription];
+        } else {
+          payload.include_aliases = {
+            external_id: [subscription]
+          };
+        }
       } else {
         // Send to all
         payload.included_segments = ["Total Subscriptions"];

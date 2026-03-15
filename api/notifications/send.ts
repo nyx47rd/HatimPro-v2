@@ -33,8 +33,14 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     };
 
     if (subscription) {
-      // subscription is the OneSignal subscription ID
-      payload.include_subscription_ids = [subscription];
+      // Check if it's a OneSignal UUID or a Firebase UID (external_id)
+      if (subscription.includes('-')) {
+        payload.include_subscription_ids = [subscription];
+      } else {
+        payload.include_aliases = {
+          external_id: [subscription]
+        };
+      }
     } else {
       // Send to all
       payload.included_segments = ["Total Subscriptions"];
@@ -59,6 +65,16 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       return res.status(200).json({ success: true, data });
     } else {
       console.error("OneSignal API Error:", data);
+      
+      // Handle invalid_player_ids gracefully
+      if (data.errors && data.errors.invalid_player_ids) {
+        return res.status(200).json({ 
+          success: false, 
+          warning: "Bildirim izniniz geçersiz veya süresi dolmuş. Lütfen tarayıcı ayarlarından bildirim iznini sıfırlayıp tekrar izin verin.", 
+          data 
+        });
+      }
+
       return res.status(response.status).json({ 
         error: 'Failed to send notification',
         details: data.errors ? data.errors[0] : "OneSignal API Hatası" 

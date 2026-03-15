@@ -353,6 +353,14 @@ function AppContent() {
           }
         });
 
+        if (user) {
+          try {
+            await OneSignal.login(user.uid);
+          } catch (loginError) {
+            console.log("OneSignal login error:", loginError);
+          }
+        }
+
         // Otomatik bildirim izni iste
         try {
           await OneSignal.Slidedown.promptPush({ force: true });
@@ -1786,7 +1794,7 @@ function AppContent() {
                                 title: 'Hatim Pro Test',
                                 body: 'Sunucu üzerinden gönderilen test bildirimi!',
                                 url: '/',
-                                subscription: currentSub
+                                subscription: user?.uid || currentSub
                               }),
                               headers: { 'content-type': 'application/json' }
                             });
