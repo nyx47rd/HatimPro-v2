@@ -19,12 +19,13 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       app_id: ONESIGNAL_APP_ID,
       headings: { en: title || 'HatimPro', tr: title || 'HatimPro' },
       contents: { en: body || 'Yeni bildirim!', tr: body || 'Yeni bildirim!' },
-      url: url || '/'
+      url: url || '/',
+      target_channel: "push"
     };
 
     if (subscription) {
       // subscription is the OneSignal subscription ID
-      payload.include_player_ids = [subscription];
+      payload.include_subscription_ids = [subscription];
     } else {
       // Send to all
       payload.included_segments = ["Total Subscriptions"];

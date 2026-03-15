@@ -39,9 +39,7 @@ async function startServer() {
 
       if (subscription) {
         // subscription is the OneSignal subscription ID
-        payload.include_aliases = {
-          onesignal_id: [subscription]
-        };
+        payload.include_subscription_ids = [subscription];
       } else {
         // Send to all
         payload.included_segments = ["Total Subscriptions"];
