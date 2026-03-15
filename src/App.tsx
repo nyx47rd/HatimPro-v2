@@ -1773,7 +1773,7 @@ function AppContent() {
                               setTimeout(() => setNotificationMsg(null), 3000);
                             } else {
                               const errData = await response.json();
-                              setNotificationMsg({ type: 'error', text: `Hata: ${errData.details || response.statusText}` });
+                              setNotificationMsg({ type: 'error', text: `Hata: ${errData.error || errData.details || response.statusText}` });
                             }
                           } catch (e: any) {
                             console.error(e);

@@ -25,7 +25,7 @@ async function startServer() {
     const { title, body, url, subscription } = req.body;
 
     if (!ONESIGNAL_APP_ID || !ONESIGNAL_REST_API_KEY) {
-      return res.status(500).json({ error: "OneSignal credentials not configured on server." });
+      return res.status(500).json({ error: "OneSignal REST_API_KEY eksik. Lütfen Environment Variables kısmına ekleyin." });
     }
 
     try {
@@ -33,12 +33,14 @@ async function startServer() {
         app_id: ONESIGNAL_APP_ID,
         headings: { en: title, tr: title },
         contents: { en: body, tr: body },
-        url: url || '/'
+        url: url || '/',
+        target_channel: "push"
       };
 
       if (subscription) {
         // subscription is the OneSignal subscription ID
         payload.include_subscription_ids = [subscription];
+        payload.include_player_ids = [subscription]; // Fallback for older OneSignal API versions
       } else {
         // Send to all
         payload.included_segments = ["All"];
@@ -58,7 +60,8 @@ async function startServer() {
       if (response.ok) {
         res.status(200).json({ message: "Notification sent", data });
       } else {
-        res.status(response.status).json({ error: data });
+        console.error("OneSignal API Error:", data);
+        res.status(response.status).json({ error: data.errors ? data.errors[0] : "OneSignal API Hatası" });
       }
     } catch (err: any) {
       console.error("Error sending OneSignal notification:", err);
