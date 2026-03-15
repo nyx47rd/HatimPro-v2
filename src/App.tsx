@@ -334,9 +334,16 @@ function AppContent() {
           safari_web_id: "web.onesignal.auto.4bead971-106d-461b-853f-83aecbd62d40",
           allowLocalhostAsSecureOrigin: true,
           notifyButton: {
-            enable: true,
+            enable: false,
           },
         });
+
+        // Otomatik bildirim izni iste
+        try {
+          await OneSignal.Slidedown.promptPush();
+        } catch (promptError) {
+          console.log("Bildirim izni istenirken hata:", promptError);
+        }
 
         // Get current subscription state
         const subscriptionId = OneSignal.User.PushSubscription.id;
