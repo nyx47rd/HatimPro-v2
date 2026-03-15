@@ -1770,8 +1770,13 @@ function AppContent() {
                             });
                             
                             if (response.ok) {
-                              setNotificationMsg({ type: 'success', text: 'Test bildirimi gönderildi!' });
-                              setTimeout(() => setNotificationMsg(null), 3000);
+                              const resData = await response.json();
+                              if (resData.warning) {
+                                setNotificationMsg({ type: 'error', text: resData.warning });
+                              } else {
+                                setNotificationMsg({ type: 'success', text: 'Test bildirimi gönderildi!' });
+                                setTimeout(() => setNotificationMsg(null), 3000);
+                              }
                             } else {
                               const errData = await response.json();
                               setNotificationMsg({ type: 'error', text: `Hata: ${errData.error || errData.details || response.statusText}` });

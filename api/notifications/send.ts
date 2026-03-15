@@ -19,15 +19,12 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       app_id: ONESIGNAL_APP_ID,
       headings: { en: title || 'HatimPro', tr: title || 'HatimPro' },
       contents: { en: body || 'Yeni bildirim!', tr: body || 'Yeni bildirim!' },
-      url: url || '/',
-      target_channel: "push"
+      url: url || '/'
     };
 
     if (subscription) {
       // subscription is the OneSignal subscription ID
-      payload.include_aliases = {
-        onesignal_id: [subscription]
-      };
+      payload.include_player_ids = [subscription];
     } else {
       // Send to all
       payload.included_segments = ["Total Subscriptions"];
@@ -43,8 +40,12 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     });
 
     const data = await response.json();
+    console.log("OneSignal Send Response:", data);
     
     if (response.ok) {
+      if (data.recipients === 0) {
+        return res.status(200).json({ success: true, warning: "Bildirim gönderildi ancak alıcı bulunamadı (recipients: 0). Abonelik ID'si geçersiz olabilir.", data });
+      }
       return res.status(200).json({ success: true, data });
     } else {
       console.error("OneSignal API Error:", data);
