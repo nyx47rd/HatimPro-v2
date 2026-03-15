@@ -363,7 +363,9 @@ function AppContent() {
 
         // Otomatik bildirim izni iste
         try {
-          await OneSignal.Slidedown.promptPush({ force: true });
+          if (typeof window !== 'undefined' && window.Notification && Notification.permission === 'default') {
+            await OneSignal.Slidedown.promptPush();
+          }
         } catch (promptError) {
           console.log("Bildirim izni istenirken hata:", promptError);
         }
@@ -412,11 +414,12 @@ function AppContent() {
       setUnreadNotifications(0);
       return;
     }
+    isInitialNotifLoad.current = true;
     const q = query(collection(db, 'notifications'), where('userId', '==', user.uid), where('read', '==', false));
     const unsubscribe = onSnapshot(q, (snapshot) => {
       setUnreadNotifications(snapshot.docs.length);
       
-      if (!isInitialLoad.current && Notification.permission === 'granted') {
+      if (!isInitialNotifLoad.current && Notification.permission === 'granted') {
         snapshot.docChanges().forEach((change) => {
           if (change.type === 'added') {
             const notif = change.doc.data() as any;
@@ -436,6 +439,7 @@ function AppContent() {
           }
         });
       }
+      isInitialNotifLoad.current = false;
     }, (error) => {
       console.error("Notifications snapshot error:", error);
     });
@@ -752,6 +756,7 @@ function AppContent() {
 
   const isFirebaseSyncing = useRef(false);
   const isInitialLoad = useRef(true);
+  const isInitialNotifLoad = useRef(true);
 
   // Check 2FA Enrollment status
   useEffect(() => {
