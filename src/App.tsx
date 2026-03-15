@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useMemo, FormEvent, useRef, Suspense, Component, ReactNode } from 'react';
+import OneSignal from 'react-onesignal';
 import { useLocation, useNavigate } from 'react-router-dom';
 import { LiquidGlassButton } from './components/LiquidGlassButton';
 import { 
@@ -319,103 +320,62 @@ function AppContent() {
   }, []);
   
   const [unreadNotifications, setUnreadNotifications] = useState(0);
-  const [pushSubscription, setPushSubscription] = useState<PushSubscription | null>(null);
+  const [pushSubscription, setPushSubscription] = useState<string | null>(null);
 
-  // Check existing subscription on load
+  // Initialize OneSignal
   useEffect(() => {
-    if ('serviceWorker' in navigator && 'PushManager' in window && Notification.permission === 'granted') {
-      navigator.serviceWorker.ready.then(async (registration) => {
-        try {
-          const subscription = await registration.pushManager.getSubscription();
-          if (subscription) {
-            setPushSubscription(subscription);
+    const initOneSignal = async () => {
+      try {
+        const appId = import.meta.env.VITE_ONESIGNAL_APP_ID || "61205574-f992-486d-ae82-7b6632beb067";
+        if (!appId) return;
+        
+        await OneSignal.init({
+          appId: appId,
+          safari_web_id: "web.onesignal.auto.4bead971-106d-461b-853f-83aecbd62d40",
+          allowLocalhostAsSecureOrigin: true,
+          notifyButton: {
+            enable: true,
+          },
+        });
+
+        // Get current subscription state
+        const subscriptionId = OneSignal.User.PushSubscription.id;
+        if (subscriptionId) {
+          setPushSubscription(subscriptionId);
+          if (user) {
+            await updateDoc(doc(db, 'users', user.uid), {
+              pushSubscription: subscriptionId
+            });
+          }
+        }
+
+        // Listen for subscription changes
+        OneSignal.User.PushSubscription.addEventListener("change", async (event) => {
+          if (event.current.id) {
+            setPushSubscription(event.current.id);
             if (user) {
               await updateDoc(doc(db, 'users', user.uid), {
-                pushSubscription: JSON.parse(JSON.stringify(subscription))
+                pushSubscription: event.current.id
               });
             }
           }
-        } catch (e) {
-          console.error("Error checking subscription:", e);
-        }
-      });
-    }
+        });
+      } catch (e) {
+        console.error("OneSignal init error:", e);
+      }
+    };
+
+    initOneSignal();
   }, [user]);
 
-  const urlBase64ToUint8Array = (base64String: string) => {
-    const padding = '='.repeat((4 - base64String.length % 4) % 4);
-    const base64 = (base64String + padding)
-      .replace(/\-/g, '+')
-      .replace(/_/g, '/');
-    const rawData = window.atob(base64);
-    const outputArray = new Uint8Array(rawData.length);
-    for (let i = 0; i < rawData.length; ++i) {
-      outputArray[i] = rawData.charCodeAt(i);
-    }
-    return outputArray;
-  };
-
   const requestNotificationPermission = async () => {
-    if (!('Notification' in window)) {
-      alert('Tarayıcınız bildirimleri desteklemiyor.');
-      return;
-    }
-    
-    const permission = await Notification.requestPermission();
-    if (permission === 'granted') {
-      try {
-        const registration = await navigator.serviceWorker.ready;
-        const publicVapidKey = import.meta.env.VITE_VAPID_PUBLIC_KEY || 'BEryiIKVG98nuPG9_yjLcUIc9ZPP2ruWPD3LVrZAo0WAijZ4B-Q55NC_LkjNTxZg4dn96PCAeWtk0tVnX4dFxPU';
-        
-        if (publicVapidKey) {
-          const subscription = await registration.pushManager.subscribe({
-            userVisibleOnly: true,
-            applicationServerKey: urlBase64ToUint8Array(publicVapidKey)
-          });
-          setPushSubscription(subscription);
-
-          // Save to Firestore for the current user
-          if (user) {
-            try {
-              await updateDoc(doc(db, 'users', user.uid), {
-                pushSubscription: JSON.parse(JSON.stringify(subscription))
-              });
-            } catch (err) {
-              console.error('Error saving subscription to Firestore:', err);
-            }
-          }
-
-          // Also keep the old API call for backward compatibility or local testing
-          await fetch('/api/notifications/subscribe', {
-            method: 'POST',
-            body: JSON.stringify(subscription),
-            headers: {
-              'content-type': 'application/json'
-            }
-          });
-        }
-
-        // Use registration.showNotification instead of new Notification
-        await registration.showNotification('HatimPro', {
-          body: 'Bildirimler başarıyla etkinleştirildi.',
-          icon: '/favicon.svg'
-        });
-      } catch (error) {
-        console.error("Push subscription error:", error);
-      }
+    try {
+      await OneSignal.Slidedown.promptPush();
+    } catch (error) {
+      console.error('Bildirim izni alınırken hata:', error);
+      alert('Bildirim izni alınırken bir hata oluştu.');
     }
   };
-
-  useEffect(() => {
-    if ('serviceWorker' in navigator) {
-      navigator.serviceWorker.ready
-        .then(async (registration) => {
-          const subscription = await registration.pushManager.getSubscription();
-          if (subscription) setPushSubscription(subscription);
-        })
-        .catch(err => console.error('SW ready failed:', err));
-    }
-  }, []);
 
   useEffect(() => {
     if (!user) {
@@ -1791,20 +1751,6 @@ function AppContent() {
                         onClick={async () => {
                           try {
                             let currentSub = pushSubscription;
-                            
-                            // Eğer abonelik yoksa tekrar almayı dene
-                            if (!currentSub && 'serviceWorker' in navigator) {
-                              const reg = await navigator.serviceWorker.ready;
-                              currentSub = await reg.pushManager.getSubscription();
-                              if (!currentSub) {
-                                const publicVapidKey = import.meta.env.VITE_VAPID_PUBLIC_KEY || 'BEryiIKVG98nuPG9_yjLcUIc9ZPP2ruWPD3LVrZAo0WAijZ4B-Q55NC_LkjNTxZg4dn96PCAeWtk0tVnX4dFxPU';
-                                currentSub = await reg.pushManager.subscribe({
-                                  userVisibleOnly: true,
-                                  applicationServerKey: urlBase64ToUint8Array(publicVapidKey)
-                                });
-                              }
-                              setPushSubscription(currentSub);
-                            }
 
                             if (!currentSub) {
                               setNotificationMsg({ type: 'error', text: 'Bildirim aboneliği alınamadı. Lütfen izni yenileyin.' });

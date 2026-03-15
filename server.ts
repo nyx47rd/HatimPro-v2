@@ -1,22 +1,13 @@
 import express from "express";
 import { createServer as createViteServer } from "vite";
 import path from "path";
-import webpush from "web-push";
 import bodyParser from "body-parser";
 import dotenv from "dotenv";
 
 dotenv.config();
 
-// VAPID keys should be generated once and kept secret
-// For this demo, we'll use these or generate them if not in env
-const publicVapidKey = process.env.VITE_VAPID_PUBLIC_KEY || 'BEryiIKVG98nuPG9_yjLcUIc9ZPP2ruWPD3LVrZAo0WAijZ4B-Q55NC_LkjNTxZg4dn96PCAeWtk0tVnX4dFxPU';
-const privateVapidKey = process.env.VAPID_PRIVATE_KEY || '4z-4kM5PDCLl8aJKuTp4vGTNnlragY08gFWH2RgM79I';
-
-webpush.setVapidDetails(
-  'mailto:yasar.123.sevda@gmail.com',
-  publicVapidKey,
-  privateVapidKey
-);
+const ONESIGNAL_APP_ID = process.env.VITE_ONESIGNAL_APP_ID || '61205574-f992-486d-ae82-7b6632beb067';
+const ONESIGNAL_REST_API_KEY = process.env.ONESIGNAL_REST_API_KEY || '';
 
 async function startServer() {
   const app = express();
@@ -24,65 +15,80 @@ async function startServer() {
 
   app.use(bodyParser.json());
 
-  // In-memory subscription storage (In production, use a database)
-  const subscriptions: any[] = [];
-
-  // Subscribe Route
+  // Subscribe Route (Kept for backward compatibility if needed, but OneSignal handles this)
   app.post("/api/notifications/subscribe", (req, res) => {
-    const subscription = req.body;
-    
-    // Check if already exists
-    const exists = subscriptions.find(s => s.endpoint === subscription.endpoint);
-    if (!exists) {
-      subscriptions.push(subscription);
-    }
-
     res.status(201).json({});
   });
 
-  // Send Notification Route (Manual trigger)
-  app.post("/api/notifications/send", (req, res) => {
+  // Send Notification Route
+  app.post("/api/notifications/send", async (req, res) => {
     const { title, body, url, subscription } = req.body;
-    const payload = JSON.stringify({ title, body, url });
 
-    if (subscription) {
-      // Send to specific subscription
-      webpush.sendNotification(subscription, payload)
-        .then(() => res.status(200).json({ message: "Notification sent" }))
-        .catch(err => res.status(500).json({ error: err.message }));
-    } else {
-      // Send to all in-memory subscriptions (fallback)
-      const notifications = subscriptions.map(sub => {
-        return webpush.sendNotification(sub, payload).catch(err => {
-          console.error("Error sending notification:", err);
-          if (err.statusCode === 410 || err.statusCode === 404) {
-            const index = subscriptions.indexOf(sub);
-            if (index > -1) subscriptions.splice(index, 1);
-          }
-        });
+    if (!ONESIGNAL_APP_ID || !ONESIGNAL_REST_API_KEY) {
+      return res.status(500).json({ error: "OneSignal credentials not configured on server." });
+    }
+
+    try {
+      const payload: any = {
+        app_id: ONESIGNAL_APP_ID,
+        headings: { en: title, tr: title },
+        contents: { en: body, tr: body },
+        url: url || '/'
+      };
+
+      if (subscription) {
+        // subscription is the OneSignal subscription ID
+        payload.include_subscription_ids = [subscription];
+      } else {
+        // Send to all
+        payload.included_segments = ["All"];
+      }
+
+      const response = await fetch('https://api.onesignal.com/notifications', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Basic ${ONESIGNAL_REST_API_KEY}`
+        },
+        body: JSON.stringify(payload)
       });
 
-      Promise.all(notifications)
-        .then(() => res.status(200).json({ message: "Notifications sent" }))
-        .catch(err => res.status(500).json({ error: err.message }));
+      const data = await response.json();
+      
+      if (response.ok) {
+        res.status(200).json({ message: "Notification sent", data });
+      } else {
+        res.status(response.status).json({ error: data });
+      }
+    } catch (err: any) {
+      console.error("Error sending OneSignal notification:", err);
+      res.status(500).json({ error: err.message });
     }
   });
 
   // Background "Cron" to simulate server-side triggers
-  // For example, a daily reminder at a specific time
-  setInterval(() => {
+  setInterval(async () => {
     const now = new Date();
     // Example: Send a reminder every hour at minute 0
-    if (now.getMinutes() === 0 && subscriptions.length > 0) {
-      const payload = JSON.stringify({
-        title: "Hatim Pro Hatırlatıcı",
-        body: "Bugünkü okumalarınızı yapmayı unutmayın!",
-        url: "/"
-      });
-
-      subscriptions.forEach(subscription => {
-        webpush.sendNotification(subscription, payload).catch(() => {});
-      });
+    if (now.getMinutes() === 0 && ONESIGNAL_APP_ID && ONESIGNAL_REST_API_KEY) {
+      try {
+        await fetch('https://api.onesignal.com/notifications', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Basic ${ONESIGNAL_REST_API_KEY}`
+          },
+          body: JSON.stringify({
+            app_id: ONESIGNAL_APP_ID,
+            included_segments: ["All"],
+            headings: { en: "Hatim Pro Hatırlatıcı", tr: "Hatim Pro Hatırlatıcı" },
+            contents: { en: "Bugünkü okumalarınızı yapmayı unutmayın!", tr: "Bugünkü okumalarınızı yapmayı unutmayın!" },
+            url: "/"
+          })
+        });
+      } catch (e) {
+        console.error("Cron notification error:", e);
+      }
     }
   }, 60000); // Check every minute
 
