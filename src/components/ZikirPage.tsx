@@ -35,7 +35,7 @@ export const ZikirPage: React.FC<ZikirPageProps> = ({ onBack, playClick, joinSes
   
   // Active Task State
   const [activeTask, setActiveTask] = useState<ZikirTask | null>(null);
-  const [mutualFollowers, setMutualFollowers] = useState<{uid: string, username: string, photoURL: string}[]>([]);
+  const [mutualFollowers, setMutualFollowers] = useState<{uid: string, username: string, photoURL: string, pushSubscription?: any}[]>([]);
   
   // Create Task Form State
   const [createModalTab, setCreateModalTab] = useState<'create' | 'join'>('create');
@@ -159,7 +159,8 @@ export const ZikirPage: React.FC<ZikirPageProps> = ({ onBack, playClick, joinSes
             mutualsData.push({
               uid: userData.uid,
               username: userData.username || userData.displayName || 'İsimsiz',
-              photoURL: userData.photoURL || `https://api.dicebear.com/7.x/avataaars/svg?seed=${userData.uid}`
+              photoURL: userData.photoURL || `https://api.dicebear.com/7.x/avataaars/svg?seed=${userData.uid}`,
+              pushSubscription: userData.pushSubscription
             });
           }
         }
@@ -329,6 +330,22 @@ export const ZikirPage: React.FC<ZikirPageProps> = ({ onBack, playClick, joinSes
         read: false,
         status: 'pending'
       });
+
+      // Send push notification if target user has a subscription
+      const targetUser = mutualFollowers.find(f => f.uid === inviteeUid);
+      if (targetUser && targetUser.pushSubscription) {
+        await fetch('/api/notifications/send', {
+          method: 'POST',
+          body: JSON.stringify({
+            title: 'Zikir Daveti',
+            body: `${profile.username || profile.displayName || 'Bir kullanıcı'} seni "${activeTask.name}" zikrine davet etti!`,
+            url: `/zikir?join=${activeTask.id}`,
+            subscription: targetUser.pushSubscription
+          }),
+          headers: { 'content-type': 'application/json' }
+        }).catch(err => console.error("Push notification error:", err));
+      }
+
       setInvitedUsers(prev => [...prev, inviteeUid]);
       setAlertConfig({
         show: true,
@@ -416,7 +433,7 @@ export const ZikirPage: React.FC<ZikirPageProps> = ({ onBack, playClick, joinSes
                 >
                   <div className="flex justify-between items-start mb-3 relative z-10">
                     <div className="flex-1 pr-4 min-w-0">
-                      <h3 className="text-lg font-bold text-white truncate">{task.name}</h3>
+                      <h3 className="text-lg font-bold text-white overflow-x-auto whitespace-nowrap custom-scrollbar pb-1">{task.name}</h3>
                       <div className="flex items-center gap-3 mt-1 text-xs text-neutral-400">
                         <span className="flex items-center gap-1">
                           <Users size={12} /> {task.participants.length}
@@ -535,14 +552,14 @@ export const ZikirPage: React.FC<ZikirPageProps> = ({ onBack, playClick, joinSes
 
           {/* Arabic Text & Meaning */}
           {(activeTask.arabicText || activeTask.meaning) && (
-            <div className="w-full max-w-xs text-center space-y-2 mb-2 shrink-0">
+            <div className="w-full max-w-xs text-center space-y-2 mb-2 shrink-0 max-h-32 overflow-y-auto custom-scrollbar px-2">
               {activeTask.arabicText && (
-                <p className="text-2xl font-bold text-emerald-400" dir="rtl" style={{ fontFamily: "'Amiri', 'Scheherazade New', serif" }}>
+                <p className="text-2xl font-bold text-emerald-400 break-words" dir="rtl" style={{ fontFamily: "'Amiri', 'Scheherazade New', serif" }}>
                   {activeTask.arabicText}
                 </p>
               )}
               {activeTask.meaning && (
-                <p className="text-sm text-neutral-400 italic">
+                <p className="text-sm text-neutral-400 italic break-words">
                   "{activeTask.meaning}"
                 </p>
               )}

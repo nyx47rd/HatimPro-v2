@@ -42,23 +42,30 @@ async function startServer() {
 
   // Send Notification Route (Manual trigger)
   app.post("/api/notifications/send", (req, res) => {
-    const { title, body, url } = req.body;
+    const { title, body, url, subscription } = req.body;
     const payload = JSON.stringify({ title, body, url });
 
-    const notifications = subscriptions.map(subscription => {
-      return webpush.sendNotification(subscription, payload).catch(err => {
-        console.error("Error sending notification:", err);
-        // Remove failed subscription if it's no longer valid
-        if (err.statusCode === 410 || err.statusCode === 404) {
-          const index = subscriptions.indexOf(subscription);
-          if (index > -1) subscriptions.splice(index, 1);
-        }
+    if (subscription) {
+      // Send to specific subscription
+      webpush.sendNotification(subscription, payload)
+        .then(() => res.status(200).json({ message: "Notification sent" }))
+        .catch(err => res.status(500).json({ error: err.message }));
+    } else {
+      // Send to all in-memory subscriptions (fallback)
+      const notifications = subscriptions.map(sub => {
+        return webpush.sendNotification(sub, payload).catch(err => {
+          console.error("Error sending notification:", err);
+          if (err.statusCode === 410 || err.statusCode === 404) {
+            const index = subscriptions.indexOf(sub);
+            if (index > -1) subscriptions.splice(index, 1);
+          }
+        });
       });
-    });
 
-    Promise.all(notifications)
-      .then(() => res.status(200).json({ message: "Notifications sent" }))
-      .catch(err => res.status(500).json({ error: err.message }));
+      Promise.all(notifications)
+        .then(() => res.status(200).json({ message: "Notifications sent" }))
+        .catch(err => res.status(500).json({ error: err.message }));
+    }
   });
 
   // Background "Cron" to simulate server-side triggers

@@ -321,6 +321,27 @@ function AppContent() {
   const [unreadNotifications, setUnreadNotifications] = useState(0);
   const [pushSubscription, setPushSubscription] = useState<PushSubscription | null>(null);
 
+  // Check existing subscription on load
+  useEffect(() => {
+    if ('serviceWorker' in navigator && 'PushManager' in window && Notification.permission === 'granted') {
+      navigator.serviceWorker.ready.then(async (registration) => {
+        try {
+          const subscription = await registration.pushManager.getSubscription();
+          if (subscription) {
+            setPushSubscription(subscription);
+            if (user) {
+              await updateDoc(doc(db, 'users', user.uid), {
+                pushSubscription: JSON.parse(JSON.stringify(subscription))
+              });
+            }
+          }
+        } catch (e) {
+          console.error("Error checking subscription:", e);
+        }
+      });
+    }
+  }, [user]);
+
   const urlBase64ToUint8Array = (base64String: string) => {
     const padding = '='.repeat((4 - base64String.length % 4) % 4);
     const base64 = (base64String + padding)
@@ -353,6 +374,18 @@ function AppContent() {
           });
           setPushSubscription(subscription);
 
+          // Save to Firestore for the current user
+          if (user) {
+            try {
+              await updateDoc(doc(db, 'users', user.uid), {
+                pushSubscription: JSON.parse(JSON.stringify(subscription))
+              });
+            } catch (err) {
+              console.error('Error saving subscription to Firestore:', err);
+            }
+          }
+
+          // Also keep the old API call for backward compatibility or local testing
           await fetch('/api/notifications/subscribe', {
             method: 'POST',
             body: JSON.stringify(subscription),
@@ -1389,7 +1422,7 @@ function AppContent() {
       <div className="flex justify-center">
         <div className="bg-sage-100/50 border border-sage-200 rounded-full px-4 py-1.5 flex items-center gap-2 text-sage-700 text-sm font-medium max-w-full overflow-hidden">
           <Info size={14} className="shrink-0" />
-          <span className="truncate">{activeTask.name}: {activeTask.startPage} - {activeTask.endPage}</span>
+          <span className="overflow-x-auto whitespace-nowrap custom-scrollbar pb-1 max-w-full block">{activeTask.name}: {activeTask.startPage} - {activeTask.endPage}</span>
         </div>
       </div>
 
@@ -1608,7 +1641,7 @@ function AppContent() {
                 <div className="flex justify-between items-start mb-4">
                   <div onClick={() => { playClick(); setData(prev => ({ ...prev, activeTaskId: task.id })); setActiveView('home'); }} className="cursor-pointer flex-1 min-w-0 pr-2">
                     <h3 className="text-lg font-bold text-sage-800 dark:text-white flex items-center gap-2">
-                      <span className="truncate">{task.name}</span>
+                      <span className="overflow-x-auto whitespace-nowrap custom-scrollbar pb-1 max-w-full block">{task.name}</span>
                       {task.isCompleted && <CheckCircle2 size={18} className="text-emerald-500 dark:text-white shrink-0" />}
                     </h3>
                     <p className="text-sm text-sage-500 dark:text-neutral-400">{task.startPage} - {task.endPage}. Sayfalar</p>

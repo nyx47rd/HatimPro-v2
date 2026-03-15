@@ -553,7 +553,7 @@ export const HatimRoomsPage: React.FC<HatimRoomsPageProps> = ({ onBack, playClic
                 >
                   <div className="flex justify-between items-start mb-3 relative z-10">
                     <div className="flex-1 pr-4 min-w-0">
-                      <h3 className="text-lg font-bold text-white truncate">{session.name}</h3>
+                      <h3 className="text-lg font-bold text-white overflow-x-auto whitespace-nowrap custom-scrollbar pb-1">{session.name}</h3>
                       <div className="flex items-center gap-3 mt-1 text-xs text-neutral-400">
                         <span className="flex items-center gap-1">
                           <Users size={12} /> {session.participants.length}

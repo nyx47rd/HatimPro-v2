@@ -235,6 +235,20 @@ export const ProfilePage: React.FC<ProfilePageProps> = ({ username, onBack, play
             createdAt: new Date().toISOString(),
             read: false
           });
+
+          // Send push notification if target user has a subscription
+          if (profile.pushSubscription) {
+            await fetch('/api/notifications/send', {
+              method: 'POST',
+              body: JSON.stringify({
+                title: 'Yeni Takipçi',
+                body: `${currentUserProfile.displayName || 'Bir kullanıcı'} seni takip etmeye başladı!`,
+                url: `/profile/${currentUserProfile.username || user.uid}`,
+                subscription: profile.pushSubscription
+              }),
+              headers: { 'content-type': 'application/json' }
+            });
+          }
         } catch (err) {
           console.error("Error sending follow notification:", err);
         }

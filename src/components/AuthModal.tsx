@@ -50,6 +50,7 @@ export const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose }) => {
     try {
       await signInWithPopup(auth, githubProvider);
       handleClose();
+      window.location.reload();
     } catch (err: any) {
       setError(getFirebaseErrorMessage(err));
     } finally {
@@ -63,6 +64,7 @@ export const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose }) => {
     try {
       await signInWithPopup(auth, microsoftProvider);
       handleClose();
+      window.location.reload();
     } catch (err: any) {
       setError(getFirebaseErrorMessage(err));
     } finally {
@@ -76,6 +78,7 @@ export const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose }) => {
     try {
       await signInWithPopup(auth, googleProvider);
       handleClose();
+      window.location.reload();
     } catch (err: any) {
       setError(getFirebaseErrorMessage(err));
     } finally {
@@ -161,6 +164,7 @@ export const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose }) => {
         await createUserWithEmailAndPassword(auth, email, password);
       }
       handleClose();
+      window.location.reload();
     } catch (err: any) {
       setError(getFirebaseErrorMessage(err));
     } finally {
