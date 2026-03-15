@@ -1,14 +1,7 @@
 import type { VercelRequest, VercelResponse } from '@vercel/node';
-import webpush from 'web-push';
 
-const publicVapidKey = process.env.VITE_VAPID_PUBLIC_KEY || 'BEryiIKVG98nuPG9_yjLcUIc9ZPP2ruWPD3LVrZAo0WAijZ4B-Q55NC_LkjNTxZg4dn96PCAeWtk0tVnX4dFxPU';
-const privateVapidKey = process.env.VAPID_PRIVATE_KEY || '4z-4kM5PDCLl8aJKuTp4vGTNnlragY08gFWH2RgM79I';
-
-webpush.setVapidDetails(
-  'mailto:yasar.123.sevda@gmail.com',
-  publicVapidKey,
-  privateVapidKey
-);
+const ONESIGNAL_APP_ID = process.env.VITE_ONESIGNAL_APP_ID || '61205574-f992-486d-ae82-7b6632beb067';
+const ONESIGNAL_REST_API_KEY = process.env.ONESIGNAL_REST_API_KEY || '';
 
 export default async function handler(req: VercelRequest, res: VercelResponse) {
   if (req.method !== 'POST') {
@@ -17,22 +10,51 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
 
   const { title, body, url, subscription } = req.body;
   
-  if (!subscription) {
-    return res.status(400).json({ error: 'No subscription provided' });
+  if (!ONESIGNAL_APP_ID || !ONESIGNAL_REST_API_KEY) {
+    return res.status(500).json({ error: "OneSignal REST_API_KEY eksik. Lütfen Vercel Environment Variables kısmına ekleyin." });
   }
 
-  const payload = JSON.stringify({ 
-    title: title || 'HatimPro', 
-    body: body || 'Yeni bildirim!', 
-    url: url || '/' 
-  });
-
   try {
-    await webpush.sendNotification(subscription, payload);
-    return res.status(200).json({ success: true });
+    const payload: any = {
+      app_id: ONESIGNAL_APP_ID,
+      headings: { en: title || 'HatimPro', tr: title || 'HatimPro' },
+      contents: { en: body || 'Yeni bildirim!', tr: body || 'Yeni bildirim!' },
+      url: url || '/',
+      target_channel: "push"
+    };
+
+    if (subscription) {
+      // subscription is the OneSignal subscription ID
+      payload.include_subscription_ids = [subscription];
+      payload.include_player_ids = [subscription]; // Fallback for older OneSignal API versions
+    } else {
+      // Send to all
+      payload.included_segments = ["All"];
+    }
+
+    const response = await fetch('https://api.onesignal.com/notifications', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Basic ${ONESIGNAL_REST_API_KEY}`
+      },
+      body: JSON.stringify(payload)
+    });
+
+    const data = await response.json();
+    
+    if (response.ok) {
+      return res.status(200).json({ success: true, data });
+    } else {
+      console.error("OneSignal API Error:", data);
+      return res.status(response.status).json({ 
+        error: 'Failed to send notification',
+        details: data.errors ? data.errors[0] : "OneSignal API Hatası" 
+      });
+    }
   } catch (error: any) {
     console.error('Push error:', error);
-    return res.status(error.statusCode || 500).json({ 
+    return res.status(500).json({ 
       error: 'Failed to send notification',
       details: error.message 
     });
