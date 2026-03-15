@@ -336,11 +336,26 @@ function AppContent() {
           notifyButton: {
             enable: false,
           },
+          promptOptions: {
+            slidedown: {
+              prompts: [
+                {
+                  type: "push",
+                  autoPrompt: true,
+                  text: {
+                    actionMessage: "Hatim ve cüz hatırlatmaları için bildirimlere izin verin.",
+                    acceptButton: "İzin Ver",
+                    cancelButton: "İptal"
+                  }
+                }
+              ]
+            }
+          }
         });
 
         // Otomatik bildirim izni iste
         try {
-          await OneSignal.Slidedown.promptPush();
+          await OneSignal.Slidedown.promptPush({ force: true });
         } catch (promptError) {
           console.log("Bildirim izni istenirken hata:", promptError);
         }

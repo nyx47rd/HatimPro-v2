@@ -22,7 +22,15 @@ async function startServer() {
 
   // Send Notification Route
   app.post("/api/notifications/send", async (req, res) => {
-    const { title, body, url, subscription } = req.body;
+    let parsedBody = req.body;
+    if (typeof req.body === 'string') {
+      try { parsedBody = JSON.parse(req.body); } catch (e) {}
+    }
+
+    const title = parsedBody?.title || 'HatimPro';
+    const bodyText = parsedBody?.body || 'Yeni bildirim!';
+    const url = parsedBody?.url || '/';
+    const subscription = parsedBody?.subscription;
 
     if (!ONESIGNAL_APP_ID || !ONESIGNAL_REST_API_KEY) {
       return res.status(500).json({ error: "OneSignal REST_API_KEY eksik. Lütfen Environment Variables kısmına ekleyin." });
@@ -32,8 +40,9 @@ async function startServer() {
       const payload: any = {
         app_id: ONESIGNAL_APP_ID,
         headings: { en: title, tr: title },
-        contents: { en: body, tr: body },
-        url: url || '/',
+        contents: { en: bodyText, tr: bodyText },
+        subtitle: { en: bodyText, tr: bodyText },
+        url: url,
         target_channel: "push"
       };
 

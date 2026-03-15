@@ -8,7 +8,15 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     return res.status(405).json({ error: 'Method not allowed' });
   }
 
-  const { title, body, url, subscription } = req.body;
+  let parsedBody = req.body;
+  if (typeof req.body === 'string') {
+    try { parsedBody = JSON.parse(req.body); } catch (e) {}
+  }
+
+  const title = parsedBody?.title || 'HatimPro';
+  const bodyText = parsedBody?.body || 'Yeni bildirim!';
+  const url = parsedBody?.url || '/';
+  const subscription = parsedBody?.subscription;
   
   if (!ONESIGNAL_APP_ID || !ONESIGNAL_REST_API_KEY) {
     return res.status(500).json({ error: "OneSignal REST_API_KEY eksik. Lütfen Vercel Environment Variables kısmına ekleyin." });
@@ -17,9 +25,10 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
   try {
     const payload: any = {
       app_id: ONESIGNAL_APP_ID,
-      headings: { en: title || 'HatimPro', tr: title || 'HatimPro' },
-      contents: { en: body || 'Yeni bildirim!', tr: body || 'Yeni bildirim!' },
-      url: url || '/',
+      headings: { en: title, tr: title },
+      contents: { en: bodyText, tr: bodyText },
+      subtitle: { en: bodyText, tr: bodyText },
+      url: url,
       target_channel: "push"
     };
 
