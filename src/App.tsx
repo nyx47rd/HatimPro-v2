@@ -1750,10 +1750,11 @@ function AppContent() {
                       <button 
                         onClick={async () => {
                           try {
-                            let currentSub = pushSubscription;
+                            // Fetch the OneSignal subscription ID
+                            let currentSub = OneSignal.User.PushSubscription.id;
 
                             if (!currentSub) {
-                              setNotificationMsg({ type: 'error', text: 'Bildirim aboneliği alınamadı. Lütfen izni yenileyin.' });
+                              setNotificationMsg({ type: 'error', text: 'OneSignal abonelik ID alınamadı. Lütfen sayfayı yenileyip tekrar deneyin.' });
                               return;
                             }
 
