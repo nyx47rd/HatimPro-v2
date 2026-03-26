@@ -9,12 +9,13 @@ interface Message {
 
 interface ChatPageProps {
   onBack?: () => void;
+  onNavigate?: (view: string) => void;
+  appData?: any;
 }
 
-export const ChatPage: React.FC<ChatPageProps> = ({ onBack }) => {
+export const ChatPage: React.FC<ChatPageProps> = ({ onBack, onNavigate, appData }) => {
   const [messages, setMessages] = useState<Message[]>([
-    { role: 'system', content: 'Sen dini konularda yardımcı olan bir asistansın. Sadece İslami ve dini konulardaki sorulara cevap ver. Diğer konulardaki sorulara nazikçe sadece dini konularda yardımcı olabileceğini söyle.' },
-    { role: 'assistant', content: 'Selamün Aleyküm! Size dini konularda nasıl yardımcı olabilirim?' }
+    { role: 'assistant', content: 'Selamün Aleyküm! Size dini konularda nasıl yardımcı olabilirim? Ayrıca uygulama verilerinize hakimim, dilerseniz istatistiklerinizi sorabilir veya sizi ilgili sayfalara yönlendirmemi isteyebilirsiniz.' }
   ]);
   const [input, setInput] = useState('');
   const [isLoading, setIsLoading] = useState(false);
@@ -28,8 +29,7 @@ export const ChatPage: React.FC<ChatPageProps> = ({ onBack }) => {
 
   const handleClearChat = () => {
     setMessages([
-      { role: 'system', content: 'Sen dini konularda yardımcı olan bir asistansın. Sadece İslami ve dini konulardaki sorulara cevap ver. Diğer konulardaki sorulara nazikçe sadece dini konularda yardımcı olabileceğini söyle.' },
-      { role: 'assistant', content: 'Selamün Aleyküm! Size dini konularda nasıl yardımcı olabilirim?' }
+      { role: 'assistant', content: 'Selamün Aleyküm! Size dini konularda nasıl yardımcı olabilirim? Ayrıca uygulama verilerinize hakimim, dilerseniz istatistiklerinizi sorabilir veya sizi ilgili sayfalara yönlendirmemi isteyebilirsiniz.' }
     ]);
   };
 
@@ -49,6 +49,20 @@ export const ChatPage: React.FC<ChatPageProps> = ({ onBack }) => {
     setMessages(newMessages);
     setIsLoading(true);
 
+    const systemPrompt = `Sen HatimPro uygulamasının akıllı asistanısın. Hem dini konularda (İslami sorular, ayet, hadis) yardımcı olursun, hem de kullanıcının uygulama içi verilerini analiz edip ona rehberlik edersin. Dini olmayan genel sohbetlere nazikçe kapalı olduğunu belirt.
+    
+    Kullanıcının güncel uygulama verileri (Zikirler, görevler, istatistikler vb.) JSON formatında aşağıdadır. Bu verileri kullanarak kullanıcının durumuna özel cevaplar verebilirsin:
+    ${JSON.stringify(appData || {})}
+    
+    Kullanıcı bir sayfaya gitmek isterse (örneğin "zikir sayfasına gitmek istiyorum", "ayarları aç", "profilimi göster", "görevlerime bakayım"), cevabının sonuna şu formatta bir etiket ekle: <navigate>SAYFA_ADI</navigate>
+    Geçerli SAYFA_ADI değerleri şunlardır: home, tasks, history, settings, zikir, hatim-rooms, profile, leaderboard, stats.
+    Örnek: "Sizi zikir sayfasına yönlendiriyorum. <navigate>zikir</navigate>"`;
+
+    const apiMessages = [
+      { role: 'system', content: systemPrompt },
+      ...newMessages
+    ];
+
     try {
       const response = await fetch('https://gen.pollinations.ai/v1/chat/completions', {
         method: 'POST',
@@ -57,8 +71,8 @@ export const ChatPage: React.FC<ChatPageProps> = ({ onBack }) => {
           'Content-Type': 'application/json'
         },
         body: JSON.stringify({
-          model: 'qwen-safety',
-          messages: newMessages
+          model: 'gemini-fast',
+          messages: apiMessages
         })
       });
 
@@ -67,7 +81,20 @@ export const ChatPage: React.FC<ChatPageProps> = ({ onBack }) => {
       }
 
       const data = await response.json();
-      const assistantMessage = data.choices[0].message.content;
+      let assistantMessage = data.choices[0].message.content;
+
+      // Check for navigation action
+      const navigateRegex = /<navigate>(.*?)<\/navigate>/;
+      const match = assistantMessage.match(navigateRegex);
+      if (match) {
+        const targetPage = match[1].trim();
+        if (onNavigate) {
+          // Delay navigation slightly so user can see the message
+          setTimeout(() => onNavigate(targetPage), 1500);
+        }
+        // Remove the tag from the displayed message
+        assistantMessage = assistantMessage.replace(navigateRegex, '').trim();
+      }
 
       setMessages([...newMessages, { role: 'assistant', content: assistantMessage }]);
     } catch (error: any) {
@@ -95,7 +122,7 @@ export const ChatPage: React.FC<ChatPageProps> = ({ onBack }) => {
           </div>
           <div>
             <h2 className="text-white font-bold">Dini Asistan</h2>
-            <p className="text-xs text-emerald-500">Çevrimiçi (qwen-safety)</p>
+            <p className="text-xs text-emerald-500">Çevrimiçi</p>
           </div>
         </div>
         <div className="flex items-center gap-2">
@@ -111,7 +138,7 @@ export const ChatPage: React.FC<ChatPageProps> = ({ onBack }) => {
 
       {/* Chat Area */}
       <div className="flex-1 overflow-y-auto p-4 space-y-6">
-        {messages.filter(m => m.role !== 'system').map((msg, index) => (
+        {messages.map((msg, index) => (
           <motion.div
             initial={{ opacity: 0, y: 10 }}
             animate={{ opacity: 1, y: 0 }}
@@ -157,7 +184,7 @@ export const ChatPage: React.FC<ChatPageProps> = ({ onBack }) => {
             type="text"
             value={input}
             onChange={(e) => setInput(e.target.value)}
-            placeholder="Dini konularda bir soru sorun..."
+            placeholder="Dini konularda veya uygulama hakkında bir soru sorun..."
             className="flex-1 bg-neutral-800 border border-neutral-700 text-white rounded-xl px-4 py-3 focus:outline-none focus:border-emerald-500 transition-colors"
             disabled={isLoading}
           />

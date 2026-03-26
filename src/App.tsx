@@ -2736,7 +2736,12 @@ function AppContent() {
                           onBack={() => {
                             playClick();
                             setActiveView('home');
-                          }} 
+                          }}
+                          onNavigate={(view) => {
+                            playClick();
+                            setActiveView(view as View);
+                          }}
+                          appData={data}
                         />
                       </Suspense>
                     </div>
