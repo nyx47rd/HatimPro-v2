@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
-import { X, ChevronRight, ChevronLeft, Check, BookOpen, Users, Trophy, RotateCcw, ListTodo, Home, Fingerprint } from 'lucide-react';
+import { X, ChevronRight, ChevronLeft, Check, BookOpen, Users, Trophy, RotateCcw, ListTodo, Home, Fingerprint, Bell, Bot } from 'lucide-react';
 
 interface TutorialOverlayProps {
   onClose: () => void;
@@ -79,6 +79,21 @@ const TUTORIAL_STEPS = [
     )
   },
   {
+    title: "Bildirimler ve Hatırlatmalar",
+    icon: <Bell size={48} className="text-red-500" />,
+    content: (
+      <div className="space-y-4 text-left text-sm text-neutral-300">
+        <p>İbadetlerinizi aksatmamak için akıllı bildirimleri kullanın.</p>
+        <ul className="list-disc pl-5 space-y-2 text-neutral-400">
+          <li><strong>Hatırlatmalar:</strong> Günlük okuma hedeflerinizi tamamlamadığınızda sistem size nazik hatırlatmalar gönderir.</li>
+          <li><strong>Oda Duyuruları:</strong> Katıldığınız hatim odalarında cüzler bittiğinde veya yeni bir gelişme olduğunda anında haberdar olursunuz.</li>
+          <li><strong>İzin Verme:</strong> Uygulama açılışında çıkan Türkçe izin penceresinden "İzin Ver" diyerek bu özelliği aktif edebilirsiniz.</li>
+          <li><strong>Ayarlar:</strong> İstediğiniz zaman Ayarlar menüsünden bildirim durumunuzu kontrol edebilirsiniz.</li>
+        </ul>
+      </div>
+    )
+  },
+  {
     title: "Güvenlik ve Biyometrik Giriş",
     icon: <Fingerprint size={48} className="text-sage-600" />,
     content: (
@@ -88,6 +103,20 @@ const TUTORIAL_STEPS = [
           <li><strong>Biyometrik Giriş (Passkey):</strong> Ayarlar menüsünden cihazınızın parmak izi veya yüz tanıma özelliğini ekleyerek şifresiz ve güvenli giriş yapabilirsiniz.</li>
           <li><strong>İki Faktörlü Doğrulama (2FA):</strong> Hesabınızı ek bir güvenlik katmanıyla koruyun.</li>
           <li><strong>Hesap Bağlantıları:</strong> Google, GitHub veya Microsoft hesaplarınızı bağlayarak tek tıkla giriş yapabilirsiniz.</li>
+        </ul>
+      </div>
+    )
+  },
+  {
+    title: "Yapay Zeka Asistanı",
+    icon: <Bot size={48} className="text-teal-500" />,
+    content: (
+      <div className="space-y-4 text-left text-sm text-neutral-300">
+        <p>Dini konularda sorularınızı sorabileceğiniz akıllı asistanınız.</p>
+        <ul className="list-disc pl-5 space-y-2 text-neutral-400">
+          <li><strong>Dini Rehberlik:</strong> Sadece dini konularda güvenilir cevaplar üretmek üzere tasarlanmış özel yapay zeka modeli (qwen-safety) kullanır.</li>
+          <li><strong>Kendi Anahtarını Getir (BYOP):</strong> Sohbet özelliğini kullanmak için pollinations.ai üzerinden ücretsiz bir hesap oluşturup giriş yapmanız yeterlidir.</li>
+          <li><strong>Gizlilik ve Güvenlik:</strong> Sorularınız güvenli bir şekilde işlenir ve size özel cevaplar sunulur.</li>
         </ul>
       </div>
     )

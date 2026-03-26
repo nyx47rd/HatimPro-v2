@@ -335,6 +335,23 @@ function AppContent() {
           allowLocalhostAsSecureOrigin: true,
           notifyButton: {
             enable: false,
+            prenotify: false,
+            showCredit: false,
+            text: {
+              'tip.state.unsubscribed': 'Bildirimlere Abone Ol',
+              'tip.state.subscribed': 'Bildirimlere Abone Oldunuz',
+              'tip.state.blocked': 'Bildirimleri Engellediniz',
+              'message.prenotify': 'Bildirimlere abone olmak ister misiniz?',
+              'message.action.subscribed': 'Abonelik için teşekkürler!',
+              'message.action.subscribing': 'Abone olunuyor...',
+              'message.action.resubscribed': 'Tekrar hoş geldiniz!',
+              'message.action.unsubscribed': 'Abonelikten ayrıldınız.',
+              'dialog.main.title': 'Bildirim Ayarları',
+              'dialog.main.button.subscribe': 'ABONE OL',
+              'dialog.main.button.unsubscribe': 'ABONELİKTEN AYRIL',
+              'dialog.blocked.title': 'Bildirimleri Açın',
+              'dialog.blocked.message': 'Bildirimleri almak için tarayıcı ayarlarından izin verin.'
+            }
           },
           promptOptions: {
             slidedown: {
@@ -342,6 +359,10 @@ function AppContent() {
                 {
                   type: "push",
                   autoPrompt: true,
+                  delay: {
+                    pageViews: 1,
+                    timeDelay: 5
+                  },
                   text: {
                     actionMessage: "Hatim ve cüz hatırlatmaları için bildirimlere izin verin.",
                     acceptButton: "İzin Ver",

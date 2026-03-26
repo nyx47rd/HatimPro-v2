@@ -28,6 +28,19 @@
 - **Magic Link**: Uses `sendSignInLinkToEmail` and `isSignInWithEmailLink`. The email is stored in `localStorage` (`emailForSignIn`) to complete the flow.
 - **Passkeys (Biometric)**: Uses the browser's `navigator.credentials` API. Public keys (credential IDs) are stored in Firestore under `users/{uid}/passkeys/{credentialId}`. Passkeys act as a secure wrapper around a randomly generated Firebase email/password combination. Users can manage (add/delete) their passkeys from the Settings menu.
 
+## Notifications
+- **OneSignal Integration**: Uses `react-onesignal` for push notifications.
+- **External ID Mapping**: The Firebase `user.uid` is mapped to OneSignal's `external_id` using `OneSignal.login(user.uid)`. This allows sending notifications directly to a specific user via their Firebase UID.
+- **Server-Side Sending**: Notifications are sent via `/api/notifications/send` (Vercel serverless function) which proxies requests to the OneSignal REST API.
+- **Environment Variables**: Requires `VITE_ONESIGNAL_APP_ID` (client-side) and `ONESIGNAL_REST_API_KEY` (server-side).
+- **Duplicate Prevention**: A `isInitialNotifLoad` ref in `App.tsx` prevents old unread notifications from triggering browser alerts on app startup.
+
+## AI Chat
+- **Pollinations.ai Integration**: The app features an AI chat powered by Pollinations.ai.
+- **BYOP (Bring Your Own Pollen)**: Users must log in to Pollinations.ai to use the chat. The app uses the BYOP model where users pay for their own usage.
+- **App Key**: The integration uses the App Key `pk_FYmGkXYGHUd4Izm3` to scope the API keys to this application.
+- **Model & Scope**: The chat strictly uses the `qwen-safety` model and is restricted to answering questions related to religious topics only.
+
 ## Known gotchas
 - **Chunk Errors**: The environment frequently triggers chunk loading errors. The recovery script in `index.html` and `main.tsx` is critical for app stability.
 - **Theme**: `next-themes` is configured with `forcedTheme="dark"`. Do not attempt to implement a light mode unless explicitly requested.
