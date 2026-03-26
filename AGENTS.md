@@ -37,8 +37,7 @@
 
 ## AI Chat
 - **Pollinations.ai Integration**: The app features an AI chat powered by Pollinations.ai.
-- **BYOP (Bring Your Own Pollen)**: Users must log in to Pollinations.ai to use the chat. The app uses the BYOP model where users pay for their own usage.
-- **App Key**: The integration uses the App Key `pk_FYmGkXYGHUd4Izm3` to scope the API keys to this application.
+- **Authentication**: Uses a standard API key provided via the `VITE_POLLINATIONS_API_KEY` environment variable.
 - **Model & Scope**: The chat strictly uses the `qwen-safety` model and is restricted to answering questions related to religious topics only.
 
 ## Known gotchas

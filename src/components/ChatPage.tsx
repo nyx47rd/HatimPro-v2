@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { motion } from 'motion/react';
-import { Send, Bot, User, Key, AlertCircle, Loader2, Trash2, ArrowLeft } from 'lucide-react';
+import { Send, Bot, User, Loader2, Trash2, ArrowLeft } from 'lucide-react';
 
 interface Message {
   role: 'user' | 'assistant' | 'system';
@@ -12,7 +12,6 @@ interface ChatPageProps {
 }
 
 export const ChatPage: React.FC<ChatPageProps> = ({ onBack }) => {
-  const [apiKey, setApiKey] = useState<string | null>(() => localStorage.getItem('pollinations_api_key'));
   const [messages, setMessages] = useState<Message[]>([
     { role: 'system', content: 'Sen dini konularda yardımcı olan bir asistansın. Sadece İslami ve dini konulardaki sorulara cevap ver. Diğer konulardaki sorulara nazikçe sadece dini konularda yardımcı olabileceğini söyle.' },
     { role: 'assistant', content: 'Selamün Aleyküm! Size dini konularda nasıl yardımcı olabilirim?' }
@@ -21,36 +20,11 @@ export const ChatPage: React.FC<ChatPageProps> = ({ onBack }) => {
   const [isLoading, setIsLoading] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
-  useEffect(() => {
-    // Check URL fragment for API key after redirect
-    if (window.location.hash.includes('api_key=')) {
-      const params = new URLSearchParams(window.location.hash.slice(1));
-      const key = params.get('api_key');
-      if (key) {
-        setApiKey(key);
-        localStorage.setItem('pollinations_api_key', key);
-        // Clean up URL
-        window.history.replaceState(null, '', window.location.pathname);
-      }
-    }
-  }, []);
+  const apiKey = import.meta.env.VITE_POLLINATIONS_API_KEY;
 
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
   }, [messages]);
-
-  const handleConnect = () => {
-    const redirectUrl = `${window.location.origin}/chat`;
-    const appKey = 'pk_FYmGkXYGHUd4Izm3';
-    const models = 'qwen-safety';
-    const authUrl = `https://enter.pollinations.ai/authorize?redirect_url=${encodeURIComponent(redirectUrl)}&app_key=${appKey}&models=${models}`;
-    window.location.href = authUrl;
-  };
-
-  const handleDisconnect = () => {
-    setApiKey(null);
-    localStorage.removeItem('pollinations_api_key');
-  };
 
   const handleClearChat = () => {
     setMessages([
@@ -61,7 +35,12 @@ export const ChatPage: React.FC<ChatPageProps> = ({ onBack }) => {
 
   const sendMessage = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!input.trim() || !apiKey || isLoading) return;
+    if (!input.trim() || isLoading) return;
+
+    if (!apiKey) {
+      setMessages(prev => [...prev, { role: 'assistant', content: 'Hata: API anahtarı bulunamadı. Lütfen .env dosyasına VITE_POLLINATIONS_API_KEY ekleyin.' }]);
+      return;
+    }
 
     const userMessage = input.trim();
     setInput('');
@@ -84,10 +63,6 @@ export const ChatPage: React.FC<ChatPageProps> = ({ onBack }) => {
       });
 
       if (!response.ok) {
-        if (response.status === 401 || response.status === 403) {
-          handleDisconnect();
-          throw new Error('API anahtarınız geçersiz veya süresi dolmuş. Lütfen tekrar bağlanın.');
-        }
         throw new Error('Bir hata oluştu. Lütfen tekrar deneyin.');
       }
 
@@ -101,49 +76,6 @@ export const ChatPage: React.FC<ChatPageProps> = ({ onBack }) => {
       setIsLoading(false);
     }
   };
-
-  if (!apiKey) {
-    return (
-      <div className="flex flex-col items-center justify-center min-h-[70vh] p-6 text-center relative">
-        {onBack && (
-          <button 
-            onClick={onBack}
-            className="absolute top-4 left-4 p-2 text-neutral-400 hover:text-white hover:bg-neutral-800 rounded-full transition-colors"
-          >
-            <ArrowLeft size={24} />
-          </button>
-        )}
-        <div className="w-20 h-20 bg-emerald-500/20 rounded-full flex items-center justify-center mb-6">
-          <Bot size={40} className="text-emerald-500" />
-        </div>
-        <h2 className="text-2xl font-bold text-white mb-4">Dini Yapay Zeka Asistanı</h2>
-        <p className="text-neutral-400 mb-8 max-w-md">
-          Dini konularda sorularınızı sorabileceğiniz, ayet ve hadisler ışığında bilgi alabileceğiniz yapay zeka asistanı ile sohbet etmek için Pollinations.ai hesabınızı bağlayın.
-        </p>
-        
-        <div className="bg-neutral-800/50 border border-neutral-700 rounded-2xl p-6 max-w-md w-full mb-8 text-left">
-          <h3 className="text-white font-medium mb-3 flex items-center gap-2">
-            <AlertCircle size={18} className="text-amber-500" />
-            Nasıl Çalışır?
-          </h3>
-          <ul className="text-sm text-neutral-400 space-y-2 list-disc pl-5">
-            <li>Bağlan butonuna tıkladığınızda güvenli bir sayfaya yönlendirileceksiniz.</li>
-            <li>Orada bir API anahtarı oluşturup uygulamaya döneceksiniz.</li>
-            <li>Kullanımlarınız sizin kotanızdan düşecektir.</li>
-            <li>Asistan sadece dini konularda cevap vermek üzere ayarlanmıştır.</li>
-          </ul>
-        </div>
-
-        <button
-          onClick={handleConnect}
-          className="flex items-center gap-2 bg-emerald-600 hover:bg-emerald-500 text-white px-8 py-4 rounded-xl font-bold transition-all shadow-lg shadow-emerald-900/20"
-        >
-          <Key size={20} />
-          Pollinations ile Bağlan
-        </button>
-      </div>
-    );
-  }
 
   return (
     <div className="flex flex-col h-[calc(100vh-80px)] md:h-screen max-w-4xl mx-auto">
@@ -173,13 +105,6 @@ export const ChatPage: React.FC<ChatPageProps> = ({ onBack }) => {
             title="Sohbeti Temizle"
           >
             <Trash2 size={18} />
-          </button>
-          <button
-            onClick={handleDisconnect}
-            className="p-2 text-neutral-400 hover:text-red-400 hover:bg-red-500/10 rounded-lg transition-colors"
-            title="Bağlantıyı Kes"
-          >
-            <AlertCircle size={18} />
           </button>
         </div>
       </div>
