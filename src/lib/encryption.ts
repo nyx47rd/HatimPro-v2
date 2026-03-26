@@ -36,6 +36,10 @@ async function getOrGenerateKey(): Promise<CryptoKey> {
   return newKey;
 }
 
+export function getRawKeyBase64(): string | null {
+  return localStorage.getItem(KEY_STORAGE_NAME);
+}
+
 export async function encryptData(text: string): Promise<string> {
   try {
     const key = await getOrGenerateKey();

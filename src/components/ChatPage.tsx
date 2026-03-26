@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { motion } from 'motion/react';
 import { Send, Bot, User, Loader2, Trash2, ArrowLeft, Shield } from 'lucide-react';
-import { encryptData, decryptData } from '../lib/encryption';
+import { encryptData, decryptData, getRawKeyBase64 } from '../lib/encryption';
 import { HatimData } from '../types';
 
 interface Message {
@@ -21,6 +21,8 @@ const LIMITS = {
   day: 100
 };
 
+const PENDING_CHAT_KEY = 'hatim_pending_chat';
+
 export const ChatPage: React.FC<ChatPageProps> = ({ onBack, appData, setData }) => {
   const [messages, setMessages] = useState<Message[]>([
     { role: 'assistant', content: 'Selamün Aleyküm! Size dini konularda nasıl yardımcı olabilirim? Konuşmalarımız uçtan uca şifrelenmektedir.' }
@@ -29,8 +31,6 @@ export const ChatPage: React.FC<ChatPageProps> = ({ onBack, appData, setData }) 
   const [isLoading, setIsLoading] = useState(false);
   const [isHistoryLoaded, setIsHistoryLoaded] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
-
-  const apiKey = import.meta.env.VITE_POLLINATIONS_API_KEY;
 
   // Load chat history
   useEffect(() => {
@@ -71,6 +71,50 @@ export const ChatPage: React.FC<ChatPageProps> = ({ onBack, appData, setData }) 
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
   }, [messages]);
+
+  // Poll for pending chat
+  useEffect(() => {
+    const pendingChatId = localStorage.getItem(PENDING_CHAT_KEY);
+    if (pendingChatId) {
+      setIsLoading(true);
+      const poll = setInterval(async () => {
+        try {
+          const res = await fetch(`/api/chat/status/${pendingChatId}`);
+          if (res.ok) {
+            const data = await res.json();
+            if (data.status === 'completed') {
+              clearInterval(poll);
+              localStorage.removeItem(PENDING_CHAT_KEY);
+              
+              const keyBase64 = getRawKeyBase64();
+              if (keyBase64 && data.encryptedData) {
+                // The server encrypted it with AES-GCM. We can decrypt it using decryptData if we format it correctly.
+                // Wait, the server sends base64 of (iv + encrypted + authTag). This is exactly what decryptData expects!
+                const decrypted = await decryptData(data.encryptedData);
+                setMessages(prev => [...prev, { role: 'assistant', content: decrypted }]);
+              } else {
+                setMessages(prev => [...prev, { role: 'assistant', content: 'Hata: Şifre çözülemedi.' }]);
+              }
+              setIsLoading(false);
+            } else if (data.status === 'error') {
+              clearInterval(poll);
+              localStorage.removeItem(PENDING_CHAT_KEY);
+              setMessages(prev => [...prev, { role: 'assistant', content: `Hata: ${data.error}` }]);
+              setIsLoading(false);
+            }
+          } else if (res.status === 404) {
+            // Not found on server, maybe server restarted
+            clearInterval(poll);
+            localStorage.removeItem(PENDING_CHAT_KEY);
+            setIsLoading(false);
+          }
+        } catch (e) {
+          // Network error, keep polling
+        }
+      }, 3000);
+      return () => clearInterval(poll);
+    }
+  }, []);
 
   const handleClearChat = async () => {
     const defaultMessages: Message[] = [
@@ -141,11 +185,6 @@ export const ChatPage: React.FC<ChatPageProps> = ({ onBack, appData, setData }) 
     e.preventDefault();
     if (!input.trim() || isLoading) return;
 
-    if (!apiKey) {
-      setMessages(prev => [...prev, { role: 'assistant', content: 'Hata: API anahtarı bulunamadı. Lütfen .env dosyasına VITE_POLLINATIONS_API_KEY ekleyin.' }]);
-      return;
-    }
-
     if (!checkRateLimit()) {
       setMessages(prev => [...prev, { role: 'assistant', content: 'Hata: Yapay zeka kullanım limitinize ulaştınız. Lütfen daha sonra tekrar deneyin. Limitlerinizi "Diğer" menüsünden kontrol edebilirsiniz.' }]);
       return;
@@ -176,32 +215,62 @@ export const ChatPage: React.FC<ChatPageProps> = ({ onBack, appData, setData }) 
       ...newMessages.filter(m => m.role !== 'system')
     ];
 
+    const encryptionKey = getRawKeyBase64();
+    if (!encryptionKey) {
+      setMessages(prev => [...prev, { role: 'assistant', content: 'Hata: Şifreleme anahtarı bulunamadı.' }]);
+      setIsLoading(false);
+      return;
+    }
+
+    const chatId = window.crypto.randomUUID();
+    localStorage.setItem(PENDING_CHAT_KEY, chatId);
+
     try {
-      const response = await fetch('https://gen.pollinations.ai/v1/chat/completions', {
+      const response = await fetch('/api/chat/request', {
         method: 'POST',
         headers: {
-          'Authorization': `Bearer ${apiKey}`,
           'Content-Type': 'application/json'
         },
         body: JSON.stringify({
-          model: 'gemini',
-          messages: apiMessages
+          messages: apiMessages,
+          encryptionKey,
+          chatId
         })
       });
 
       if (!response.ok) {
         const errText = await response.text();
-        console.error("API Error:", errText);
-        throw new Error(`API Hatası (${response.status}): ${errText.slice(0, 100)}...`);
+        throw new Error(`Sunucu Hatası (${response.status}): ${errText.slice(0, 100)}...`);
       }
 
-      const data = await response.json();
-      const assistantMessage = data.choices[0].message.content;
+      // Start polling
+      const poll = setInterval(async () => {
+        try {
+          const res = await fetch(`/api/chat/status/${chatId}`);
+          if (res.ok) {
+            const data = await res.json();
+            if (data.status === 'completed') {
+              clearInterval(poll);
+              localStorage.removeItem(PENDING_CHAT_KEY);
+              
+              const decrypted = await decryptData(data.encryptedData);
+              setMessages(prev => [...prev, { role: 'assistant', content: decrypted }]);
+              setIsLoading(false);
+            } else if (data.status === 'error') {
+              clearInterval(poll);
+              localStorage.removeItem(PENDING_CHAT_KEY);
+              setMessages(prev => [...prev, { role: 'assistant', content: `Hata: ${data.error}` }]);
+              setIsLoading(false);
+            }
+          }
+        } catch (e) {
+          // Network error, keep polling
+        }
+      }, 3000);
 
-      setMessages([...newMessages, { role: 'assistant', content: assistantMessage }]);
     } catch (error: any) {
+      localStorage.removeItem(PENDING_CHAT_KEY);
       setMessages([...newMessages, { role: 'assistant', content: `Hata: ${error.message}` }]);
-    } finally {
       setIsLoading(false);
     }
   };

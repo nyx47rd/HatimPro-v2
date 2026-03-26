@@ -3,17 +3,86 @@ import { createServer as createViteServer } from "vite";
 import path from "path";
 import bodyParser from "body-parser";
 import dotenv from "dotenv";
+import crypto from "crypto";
 
 dotenv.config();
 
 const ONESIGNAL_APP_ID = process.env.VITE_ONESIGNAL_APP_ID || '61205574-f992-486d-ae82-7b6632beb067';
 const ONESIGNAL_REST_API_KEY = process.env.ONESIGNAL_REST_API_KEY || '';
 
+// In-memory store for pending chats
+const chatStore = new Map<string, { status: 'pending' | 'completed' | 'error', encryptedData?: string, error?: string }>();
+
 async function startServer() {
   const app = express();
   const PORT = 3000;
 
   app.use(bodyParser.json());
+
+  // Chat Request Endpoint
+  app.post("/api/chat/request", async (req, res) => {
+    const { messages, encryptionKey, chatId } = req.body;
+    if (!messages || !encryptionKey || !chatId) {
+      return res.status(400).json({ error: 'Eksik parametreler' });
+    }
+
+    // Set status to pending immediately
+    chatStore.set(chatId, { status: 'pending' });
+    res.status(202).json({ status: 'pending', chatId });
+
+    // Process asynchronously
+    try {
+      const apiKey = process.env.VITE_POLLINATIONS_API_KEY;
+      if (!apiKey) throw new Error('API anahtarı bulunamadı');
+
+      const response = await fetch('https://gen.pollinations.ai/v1/chat/completions', {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${apiKey}`,
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({
+          model: 'gemini-fast',
+          messages: messages
+        })
+      });
+
+      if (!response.ok) {
+        const errText = await response.text();
+        throw new Error(`API Hatası (${response.status}): ${errText.slice(0, 100)}...`);
+      }
+
+      const data = await response.json();
+      const assistantMessage = data.choices[0].message.content;
+
+      // Encrypt the response using the provided key
+      const keyBuffer = Buffer.from(encryptionKey, 'base64');
+      const iv = crypto.randomBytes(12);
+      const cipher = crypto.createCipheriv('aes-256-gcm', keyBuffer, iv);
+      
+      let encrypted = cipher.update(assistantMessage, 'utf8');
+      const finalBuffer = cipher.final();
+      const authTag = cipher.getAuthTag();
+      
+      const combined = Buffer.concat([iv, encrypted, finalBuffer, authTag]);
+      const encryptedBase64 = combined.toString('base64');
+
+      chatStore.set(chatId, { status: 'completed', encryptedData: encryptedBase64 });
+    } catch (error: any) {
+      console.error("Async chat error:", error);
+      chatStore.set(chatId, { status: 'error', error: error.message });
+    }
+  });
+
+  // Chat Status Endpoint
+  app.get("/api/chat/status/:chatId", (req, res) => {
+    const { chatId } = req.params;
+    const chat = chatStore.get(chatId);
+    if (!chat) {
+      return res.status(404).json({ error: 'Sohbet bulunamadı' });
+    }
+    res.json(chat);
+  });
 
   // Subscribe Route (Kept for backward compatibility if needed, but OneSignal handles this)
   app.post("/api/notifications/subscribe", (req, res) => {
