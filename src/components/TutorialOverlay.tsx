@@ -114,9 +114,9 @@ const TUTORIAL_STEPS = [
       <div className="space-y-4 text-left text-sm text-neutral-300">
         <p>Dini konularda sorularınızı sorabileceğiniz akıllı asistanınız.</p>
         <ul className="list-disc pl-5 space-y-2 text-neutral-400">
-          <li><strong>Dini Rehberlik:</strong> Sadece dini konularda güvenilir cevaplar üretmek üzere tasarlanmış özel yapay zeka modeli (qwen-safety) kullanır.</li>
-          <li><strong>Kendi Anahtarını Getir (BYOP):</strong> Sohbet özelliğini kullanmak için pollinations.ai üzerinden ücretsiz bir hesap oluşturup giriş yapmanız yeterlidir.</li>
-          <li><strong>Gizlilik ve Güvenlik:</strong> Sorularınız güvenli bir şekilde işlenir ve size özel cevaplar sunulur.</li>
+          <li><strong>Dini Rehberlik:</strong> Sadece dini konularda güvenilir cevaplar üretmek üzere tasarlanmış özel yapay zeka asistanı.</li>
+          <li><strong>Soru-Cevap:</strong> Aklınıza takılan dini soruları sorabilir, ayet ve hadisler ışığında bilgi alabilirsiniz.</li>
+          <li><strong>Hızlı Erişim:</strong> "Diğer" menüsünden asistana kolayca ulaşabilirsiniz.</li>
         </ul>
       </div>
     )

@@ -1,13 +1,17 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { motion } from 'motion/react';
-import { Send, Bot, User, Key, AlertCircle, Loader2, Trash2 } from 'lucide-react';
+import { Send, Bot, User, Key, AlertCircle, Loader2, Trash2, ArrowLeft } from 'lucide-react';
 
 interface Message {
   role: 'user' | 'assistant' | 'system';
   content: string;
 }
 
-export const ChatPage: React.FC = () => {
+interface ChatPageProps {
+  onBack?: () => void;
+}
+
+export const ChatPage: React.FC<ChatPageProps> = ({ onBack }) => {
   const [apiKey, setApiKey] = useState<string | null>(() => localStorage.getItem('pollinations_api_key'));
   const [messages, setMessages] = useState<Message[]>([
     { role: 'system', content: 'Sen dini konularda yardımcı olan bir asistansın. Sadece İslami ve dini konulardaki sorulara cevap ver. Diğer konulardaki sorulara nazikçe sadece dini konularda yardımcı olabileceğini söyle.' },
@@ -100,7 +104,15 @@ export const ChatPage: React.FC = () => {
 
   if (!apiKey) {
     return (
-      <div className="flex flex-col items-center justify-center min-h-[70vh] p-6 text-center">
+      <div className="flex flex-col items-center justify-center min-h-[70vh] p-6 text-center relative">
+        {onBack && (
+          <button 
+            onClick={onBack}
+            className="absolute top-4 left-4 p-2 text-neutral-400 hover:text-white hover:bg-neutral-800 rounded-full transition-colors"
+          >
+            <ArrowLeft size={24} />
+          </button>
+        )}
         <div className="w-20 h-20 bg-emerald-500/20 rounded-full flex items-center justify-center mb-6">
           <Bot size={40} className="text-emerald-500" />
         </div>
@@ -138,6 +150,14 @@ export const ChatPage: React.FC = () => {
       {/* Header */}
       <div className="flex items-center justify-between p-4 border-b border-neutral-800 bg-neutral-900/50 backdrop-blur-md sticky top-0 z-10">
         <div className="flex items-center gap-3">
+          {onBack && (
+            <button 
+              onClick={onBack}
+              className="p-2 -ml-2 text-neutral-400 hover:text-white hover:bg-neutral-800 rounded-full transition-colors md:hidden"
+            >
+              <ArrowLeft size={20} />
+            </button>
+          )}
           <div className="w-10 h-10 bg-emerald-500/20 rounded-full flex items-center justify-center">
             <Bot size={20} className="text-emerald-500" />
           </div>

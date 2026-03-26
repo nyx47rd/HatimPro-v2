@@ -45,7 +45,8 @@ import {
   Mic,
   Fingerprint,
   LogOut,
-  UserPlus
+  UserPlus,
+  Bot
 } from 'lucide-react';
 import { Drawer } from 'vaul';
 import { motion, AnimatePresence } from 'motion/react';
@@ -116,8 +117,9 @@ const LazyQuranReader = React.lazy(() => import('./components/QuranReader').then
 const LazyLegalPage = React.lazy(() => import('./components/LegalPage').then(module => ({ default: module.LegalPage })));
 const LazyDataDeletionPage = React.lazy(() => import('./components/DataDeletionPage').then(module => ({ default: module.DataDeletionPage })));
 const LazyGoogleOneTap = React.lazy(() => import('./components/GoogleOneTap').then(module => ({ default: module.GoogleOneTap })));
+const LazyChatPage = React.lazy(() => import('./components/ChatPage').then(module => ({ default: module.ChatPage })));
 
-type View = 'home' | 'tasks' | 'history' | 'settings' | 'zikir' | 'hatim-rooms' | 'profile' | 'privacy' | 'terms' | 'data-deletion' | 'leaderboard' | 'stats';
+type View = 'home' | 'tasks' | 'history' | 'settings' | 'zikir' | 'hatim-rooms' | 'profile' | 'privacy' | 'terms' | 'data-deletion' | 'leaderboard' | 'stats' | 'chat';
 
 class ErrorBoundary extends Component<{children: ReactNode}, {hasError: boolean}> {
   constructor(props: {children: ReactNode}) {
@@ -237,6 +239,7 @@ function AppContent() {
     if (path === '/settings') return 'settings';
     if (path === '/leaderboard') return 'leaderboard';
     if (path === '/stats') return 'stats';
+    if (path === '/chat') return 'chat';
     if (path === '/zikir') return 'zikir';
     if (path === '/hatim-rooms') return 'hatim-rooms';
     if (path === '/profile') return 'profile';
@@ -2493,6 +2496,10 @@ function AppContent() {
                 
                 <div className="pt-4 pb-2">
                   <div className="px-4 text-[10px] font-bold text-sage-400 uppercase tracking-wider mb-2">Keşfet & Ayarlar</div>
+                  <button onClick={() => { playClick(); setActiveView('chat'); }} className={`sidebar-link w-full flex items-center gap-3 px-4 py-3 rounded-xl transition-colors ${activeView === 'chat' ? 'bg-sage-100 dark:bg-neutral-800 text-sage-800 dark:text-white font-bold' : 'text-sage-600 dark:text-neutral-400 hover:bg-sage-50 dark:hover:bg-neutral-800/50'}`}>
+                    <Bot size={20} strokeWidth={activeView === 'chat' ? 2.5 : 2} />
+                    Yapay Zeka Asistanı
+                  </button>
                   <button onClick={() => { playClick(); setActiveView('leaderboard'); }} className={`sidebar-link w-full flex items-center gap-3 px-4 py-3 rounded-xl transition-colors ${activeView === 'leaderboard' ? 'bg-sage-100 dark:bg-neutral-800 text-sage-800 dark:text-white font-bold' : 'text-sage-600 dark:text-neutral-400 hover:bg-sage-50 dark:hover:bg-neutral-800/50'}`}>
                     <Trophy size={20} strokeWidth={activeView === 'leaderboard' ? 2.5 : 2} />
                     Liderlik Tablosu
@@ -2721,6 +2728,20 @@ function AppContent() {
                     </div>
                   </div>
                 )}
+                {activeView === 'chat' && (
+                  <div className="fixed inset-0 md:left-64 z-50 bg-black flex justify-center overflow-y-auto">
+                    <div className="w-full max-w-2xl min-h-full relative border-x border-neutral-900 bg-black">
+                      <Suspense fallback={<div className="flex h-full items-center justify-center"><div className="w-8 h-8 border-4 border-white border-t-transparent rounded-full animate-spin"></div></div>}>
+                        <LazyChatPage 
+                          onBack={() => {
+                            playClick();
+                            setActiveView('home');
+                          }} 
+                        />
+                      </Suspense>
+                    </div>
+                  </div>
+                )}
               </main>
 
               {/* Bottom Navbar (Mobile Only) */}
@@ -2782,6 +2803,12 @@ function AppContent() {
                             <div className="mx-auto w-12 h-1.5 flex-shrink-0 rounded-full bg-sage-200 dark:bg-neutral-800 mb-8" />
                             <div className="max-w-md mx-auto space-y-2">
                               <h3 className="text-xl font-bold text-sage-800 dark:text-white mb-4 px-4">Diğer Seçenekler</h3>
+                              <button onClick={() => { playClick(); setActiveView('chat'); setIsMoreDrawerOpen(false); }} className="w-full flex items-center gap-4 px-6 py-4 hover:bg-sage-50 dark:hover:bg-neutral-800 rounded-2xl transition-colors">
+                                <div className="bg-teal-100 dark:bg-teal-900/30 p-2 rounded-xl text-teal-600 dark:text-teal-400">
+                                  <Bot size={20} />
+                                </div>
+                                <span className="font-bold text-sage-800 dark:text-white">Yapay Zeka Asistanı</span>
+                              </button>
                               <button onClick={() => { playClick(); setActiveView('leaderboard'); setIsMoreDrawerOpen(false); }} className="w-full flex items-center gap-4 px-6 py-4 hover:bg-sage-50 dark:hover:bg-neutral-800 rounded-2xl transition-colors">
                                 <div className="bg-amber-100 dark:bg-amber-900/30 p-2 rounded-xl text-amber-600 dark:text-amber-400">
                                   <Trophy size={20} />
