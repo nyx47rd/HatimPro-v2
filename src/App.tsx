@@ -2737,11 +2737,8 @@ function AppContent() {
                             playClick();
                             setActiveView('home');
                           }}
-                          onNavigate={(view) => {
-                            playClick();
-                            setActiveView(view as View);
-                          }}
                           appData={data}
+                          setData={setData}
                         />
                       </Suspense>
                     </div>
@@ -2804,7 +2801,7 @@ function AppContent() {
                       <Drawer.Portal>
                         <Drawer.Overlay className="fixed inset-0 bg-black/40 z-[60]" />
                         <Drawer.Content className="bg-white dark:bg-neutral-900 flex flex-col rounded-t-[32px] h-[60vh] mt-24 fixed bottom-0 left-0 right-0 z-[70] outline-none">
-                          <div className="p-4 bg-white dark:bg-neutral-900 rounded-t-[32px] flex-1">
+                          <div className="p-4 bg-white dark:bg-neutral-900 rounded-t-[32px] flex-1 overflow-y-auto">
                             <div className="mx-auto w-12 h-1.5 flex-shrink-0 rounded-full bg-sage-200 dark:bg-neutral-800 mb-8" />
                             <div className="max-w-md mx-auto space-y-2">
                               <h3 className="text-xl font-bold text-sage-800 dark:text-white mb-4 px-4">Diğer Seçenekler</h3>
@@ -2832,6 +2829,60 @@ function AppContent() {
                                 </div>
                                 <span className="font-bold text-sage-800 dark:text-white">Ayarlar</span>
                               </button>
+
+                              {/* AI Rate Limits */}
+                              <div className="mt-6 px-4">
+                                <h4 className="text-sm font-bold text-sage-600 dark:text-neutral-400 mb-3 flex items-center gap-2">
+                                  <Bot size={16} />
+                                  Yapay Zeka Kullanım Limitleri
+                                </h4>
+                                <div className="bg-sage-50 dark:bg-neutral-800/50 rounded-2xl p-4 space-y-3">
+                                  {(() => {
+                                    const now = new Date();
+                                    const currentMinute = Math.floor(now.getTime() / 60000);
+                                    const currentHour = Math.floor(now.getTime() / 3600000);
+                                    const currentDay = Math.floor(now.getTime() / 86400000);
+                                    
+                                    const usage = data.aiUsage || {
+                                      minute: { count: 0, timestamp: 0 },
+                                      hour: { count: 0, timestamp: 0 },
+                                      day: { count: 0, timestamp: 0 }
+                                    };
+
+                                    const minCount = usage.minute.timestamp === currentMinute ? usage.minute.count : 0;
+                                    const hourCount = usage.hour.timestamp === currentHour ? usage.hour.count : 0;
+                                    const dayCount = usage.day.timestamp === currentDay ? usage.day.count : 0;
+
+                                    return (
+                                      <>
+                                        <div className="flex justify-between items-center text-sm">
+                                          <span className="text-sage-600 dark:text-neutral-400">Dakikalık</span>
+                                          <span className="font-medium text-sage-800 dark:text-white">{minCount} / 5</span>
+                                        </div>
+                                        <div className="w-full bg-sage-200 dark:bg-neutral-700 rounded-full h-1.5">
+                                          <div className="bg-emerald-500 h-1.5 rounded-full" style={{ width: `${Math.min(100, (minCount / 5) * 100)}%` }}></div>
+                                        </div>
+
+                                        <div className="flex justify-between items-center text-sm pt-1">
+                                          <span className="text-sage-600 dark:text-neutral-400">Saatlik</span>
+                                          <span className="font-medium text-sage-800 dark:text-white">{hourCount} / 20</span>
+                                        </div>
+                                        <div className="w-full bg-sage-200 dark:bg-neutral-700 rounded-full h-1.5">
+                                          <div className="bg-blue-500 h-1.5 rounded-full" style={{ width: `${Math.min(100, (hourCount / 20) * 100)}%` }}></div>
+                                        </div>
+
+                                        <div className="flex justify-between items-center text-sm pt-1">
+                                          <span className="text-sage-600 dark:text-neutral-400">Günlük</span>
+                                          <span className="font-medium text-sage-800 dark:text-white">{dayCount} / 100</span>
+                                        </div>
+                                        <div className="w-full bg-sage-200 dark:bg-neutral-700 rounded-full h-1.5">
+                                          <div className="bg-purple-500 h-1.5 rounded-full" style={{ width: `${Math.min(100, (dayCount / 100) * 100)}%` }}></div>
+                                        </div>
+                                      </>
+                                    );
+                                  })()}
+                                </div>
+                              </div>
                             </div>
                           </div>
                         </Drawer.Content>

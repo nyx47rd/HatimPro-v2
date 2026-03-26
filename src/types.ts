@@ -20,11 +20,19 @@ export interface HatimTask {
   totalReadingTime?: number; // in seconds
 }
 
+export interface AIUsage {
+  minute: { count: number; timestamp: number };
+  hour: { count: number; timestamp: number };
+  day: { count: number; timestamp: number };
+}
+
 export interface HatimData {
   activeTaskId: string;
   tasks: HatimTask[];
   logs: ReadingLog[];
   mfaEnabled?: boolean;
+  aiUsage?: AIUsage;
+  chatHistory?: string; // Encrypted JSON string
 }
 
 export interface AppNotification {

@@ -1,6 +1,8 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { motion } from 'motion/react';
-import { Send, Bot, User, Loader2, Trash2, ArrowLeft } from 'lucide-react';
+import { Send, Bot, User, Loader2, Trash2, ArrowLeft, Shield } from 'lucide-react';
+import { encryptData, decryptData } from '../lib/encryption';
+import { HatimData } from '../types';
 
 interface Message {
   role: 'user' | 'assistant' | 'system';
@@ -9,28 +11,130 @@ interface Message {
 
 interface ChatPageProps {
   onBack?: () => void;
-  onNavigate?: (view: string) => void;
-  appData?: any;
+  appData?: HatimData;
+  setData?: React.Dispatch<React.SetStateAction<HatimData>>;
 }
 
-export const ChatPage: React.FC<ChatPageProps> = ({ onBack, onNavigate, appData }) => {
+const LIMITS = {
+  minute: 5,
+  hour: 20,
+  day: 100
+};
+
+export const ChatPage: React.FC<ChatPageProps> = ({ onBack, appData, setData }) => {
   const [messages, setMessages] = useState<Message[]>([
-    { role: 'assistant', content: 'Selamün Aleyküm! Size dini konularda nasıl yardımcı olabilirim? Ayrıca uygulama verilerinize hakimim, dilerseniz istatistiklerinizi sorabilir veya sizi ilgili sayfalara yönlendirmemi isteyebilirsiniz.' }
+    { role: 'assistant', content: 'Selamün Aleyküm! Size dini konularda nasıl yardımcı olabilirim? Konuşmalarımız uçtan uca şifrelenmektedir.' }
   ]);
   const [input, setInput] = useState('');
   const [isLoading, setIsLoading] = useState(false);
+  const [isHistoryLoaded, setIsHistoryLoaded] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
   const apiKey = import.meta.env.VITE_POLLINATIONS_API_KEY;
+
+  // Load chat history
+  useEffect(() => {
+    const loadHistory = async () => {
+      if (appData?.chatHistory && !isHistoryLoaded) {
+        try {
+          const decrypted = await decryptData(appData.chatHistory);
+          if (decrypted) {
+            const parsed = JSON.parse(decrypted);
+            if (Array.isArray(parsed) && parsed.length > 0) {
+              setMessages(parsed);
+            }
+          }
+        } catch (e) {
+          console.error("Failed to load chat history", e);
+        }
+      }
+      setIsHistoryLoaded(true);
+    };
+    loadHistory();
+  }, [appData?.chatHistory, isHistoryLoaded]);
+
+  // Save chat history whenever messages change
+  useEffect(() => {
+    const saveHistory = async () => {
+      if (isHistoryLoaded && setData && messages.length > 1) {
+        try {
+          const encrypted = await encryptData(JSON.stringify(messages));
+          setData(prev => ({ ...prev, chatHistory: encrypted }));
+        } catch (e) {
+          console.error("Failed to save chat history", e);
+        }
+      }
+    };
+    saveHistory();
+  }, [messages, isHistoryLoaded, setData]);
 
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
   }, [messages]);
 
-  const handleClearChat = () => {
-    setMessages([
-      { role: 'assistant', content: 'Selamün Aleyküm! Size dini konularda nasıl yardımcı olabilirim? Ayrıca uygulama verilerinize hakimim, dilerseniz istatistiklerinizi sorabilir veya sizi ilgili sayfalara yönlendirmemi isteyebilirsiniz.' }
-    ]);
+  const handleClearChat = async () => {
+    const defaultMessages: Message[] = [
+      { role: 'assistant', content: 'Selamün Aleyküm! Size dini konularda nasıl yardımcı olabilirim? Konuşmalarımız uçtan uca şifrelenmektedir.' }
+    ];
+    setMessages(defaultMessages);
+    if (setData) {
+      try {
+        const encrypted = await encryptData(JSON.stringify(defaultMessages));
+        setData(prev => ({ ...prev, chatHistory: encrypted }));
+      } catch (e) {
+        console.error("Failed to clear chat history", e);
+      }
+    }
+  };
+
+  const checkRateLimit = (): boolean => {
+    if (!appData || !setData) return true;
+    
+    const now = new Date();
+    const currentMinute = Math.floor(now.getTime() / 60000);
+    const currentHour = Math.floor(now.getTime() / 3600000);
+    const currentDay = Math.floor(now.getTime() / 86400000);
+
+    const usage = appData.aiUsage || {
+      minute: { count: 0, timestamp: 0 },
+      hour: { count: 0, timestamp: 0 },
+      day: { count: 0, timestamp: 0 }
+    };
+
+    // Check limits first
+    if (usage.minute.timestamp === currentMinute && usage.minute.count >= LIMITS.minute) return false;
+    if (usage.hour.timestamp === currentHour && usage.hour.count >= LIMITS.hour) return false;
+    if (usage.day.timestamp === currentDay && usage.day.count >= LIMITS.day) return false;
+
+    let newUsage = {
+      minute: { ...usage.minute },
+      hour: { ...usage.hour },
+      day: { ...usage.day }
+    };
+
+    // Increment Minute
+    if (newUsage.minute.timestamp === currentMinute) {
+      newUsage.minute.count += 1;
+    } else {
+      newUsage.minute = { count: 1, timestamp: currentMinute };
+    }
+
+    // Increment Hour
+    if (newUsage.hour.timestamp === currentHour) {
+      newUsage.hour.count += 1;
+    } else {
+      newUsage.hour = { count: 1, timestamp: currentHour };
+    }
+
+    // Increment Day
+    if (newUsage.day.timestamp === currentDay) {
+      newUsage.day.count += 1;
+    } else {
+      newUsage.day = { count: 1, timestamp: currentDay };
+    }
+
+    setData(prev => ({ ...prev, aiUsage: newUsage }));
+    return true;
   };
 
   const sendMessage = async (e: React.FormEvent) => {
@@ -42,6 +146,11 @@ export const ChatPage: React.FC<ChatPageProps> = ({ onBack, onNavigate, appData 
       return;
     }
 
+    if (!checkRateLimit()) {
+      setMessages(prev => [...prev, { role: 'assistant', content: 'Hata: Yapay zeka kullanım limitinize ulaştınız. Lütfen daha sonra tekrar deneyin. Limitlerinizi "Diğer" menüsünden kontrol edebilirsiniz.' }]);
+      return;
+    }
+
     const userMessage = input.trim();
     setInput('');
     
@@ -49,18 +158,22 @@ export const ChatPage: React.FC<ChatPageProps> = ({ onBack, onNavigate, appData 
     setMessages(newMessages);
     setIsLoading(true);
 
+    const appDataSummary = appData ? {
+      xp: appData.xp,
+      level: appData.level,
+      streak: appData.streak,
+      tasks: appData.tasks?.slice(0, 10),
+      recentLogs: appData.logs?.slice(0, 5)
+    } : {};
+
     const systemPrompt = `Sen HatimPro uygulamasının akıllı asistanısın. Hem dini konularda (İslami sorular, ayet, hadis) yardımcı olursun, hem de kullanıcının uygulama içi verilerini analiz edip ona rehberlik edersin. Dini olmayan genel sohbetlere nazikçe kapalı olduğunu belirt.
     
-    Kullanıcının güncel uygulama verileri (Zikirler, görevler, istatistikler vb.) JSON formatında aşağıdadır. Bu verileri kullanarak kullanıcının durumuna özel cevaplar verebilirsin:
-    ${JSON.stringify(appData || {})}
-    
-    Kullanıcı bir sayfaya gitmek isterse (örneğin "zikir sayfasına gitmek istiyorum", "ayarları aç", "profilimi göster", "görevlerime bakayım"), cevabının sonuna şu formatta bir etiket ekle: <navigate>SAYFA_ADI</navigate>
-    Geçerli SAYFA_ADI değerleri şunlardır: home, tasks, history, settings, zikir, hatim-rooms, profile, leaderboard, stats.
-    Örnek: "Sizi zikir sayfasına yönlendiriyorum. <navigate>zikir</navigate>"`;
+    Kullanıcının güncel uygulama verileri (Özet) JSON formatında aşağıdadır. Bu verileri kullanarak kullanıcının durumuna özel cevaplar verebilirsin:
+    ${JSON.stringify(appDataSummary)}`;
 
     const apiMessages = [
       { role: 'system', content: systemPrompt },
-      ...newMessages
+      ...newMessages.filter(m => m.role !== 'system')
     ];
 
     try {
@@ -71,30 +184,19 @@ export const ChatPage: React.FC<ChatPageProps> = ({ onBack, onNavigate, appData 
           'Content-Type': 'application/json'
         },
         body: JSON.stringify({
-          model: 'gemini-fast',
+          model: 'gemini',
           messages: apiMessages
         })
       });
 
       if (!response.ok) {
-        throw new Error('Bir hata oluştu. Lütfen tekrar deneyin.');
+        const errText = await response.text();
+        console.error("API Error:", errText);
+        throw new Error(`API Hatası (${response.status}): ${errText.slice(0, 100)}...`);
       }
 
       const data = await response.json();
-      let assistantMessage = data.choices[0].message.content;
-
-      // Check for navigation action
-      const navigateRegex = /<navigate>(.*?)<\/navigate>/;
-      const match = assistantMessage.match(navigateRegex);
-      if (match) {
-        const targetPage = match[1].trim();
-        if (onNavigate) {
-          // Delay navigation slightly so user can see the message
-          setTimeout(() => onNavigate(targetPage), 1500);
-        }
-        // Remove the tag from the displayed message
-        assistantMessage = assistantMessage.replace(navigateRegex, '').trim();
-      }
+      const assistantMessage = data.choices[0].message.content;
 
       setMessages([...newMessages, { role: 'assistant', content: assistantMessage }]);
     } catch (error: any) {
@@ -121,7 +223,10 @@ export const ChatPage: React.FC<ChatPageProps> = ({ onBack, onNavigate, appData 
             <Bot size={20} className="text-emerald-500" />
           </div>
           <div>
-            <h2 className="text-white font-bold">Dini Asistan</h2>
+            <h2 className="text-white font-bold flex items-center gap-2">
+              Dini Asistan
+              <Shield size={14} className="text-emerald-500" title="Uçtan Uca Şifreli" />
+            </h2>
             <p className="text-xs text-emerald-500">Çevrimiçi</p>
           </div>
         </div>
@@ -138,7 +243,7 @@ export const ChatPage: React.FC<ChatPageProps> = ({ onBack, onNavigate, appData 
 
       {/* Chat Area */}
       <div className="flex-1 overflow-y-auto p-4 space-y-6">
-        {messages.map((msg, index) => (
+        {messages.filter(m => m.role !== 'system').map((msg, index) => (
           <motion.div
             initial={{ opacity: 0, y: 10 }}
             animate={{ opacity: 1, y: 0 }}
@@ -196,8 +301,9 @@ export const ChatPage: React.FC<ChatPageProps> = ({ onBack, onNavigate, appData 
             <Send size={20} />
           </button>
         </form>
-        <p className="text-center text-[10px] text-neutral-500 mt-2">
-          Yapay zeka hata yapabilir. Lütfen önemli dini konularda güvenilir kaynaklara da başvurun.
+        <p className="text-center text-[10px] text-neutral-500 mt-2 flex items-center justify-center gap-1">
+          <Shield size={10} />
+          Mesajlarınız cihazınızda uçtan uca şifrelenir. Yapay zeka hata yapabilir.
         </p>
       </div>
     </div>
