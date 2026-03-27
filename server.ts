@@ -4,14 +4,25 @@ import path from "path";
 import bodyParser from "body-parser";
 import dotenv from "dotenv";
 import crypto from "crypto";
+import { initializeApp, getApps } from 'firebase/app';
+import { getFirestore, doc, setDoc, getDoc } from 'firebase/firestore';
 
 dotenv.config();
 
 const ONESIGNAL_APP_ID = process.env.VITE_ONESIGNAL_APP_ID || '61205574-f992-486d-ae82-7b6632beb067';
 const ONESIGNAL_REST_API_KEY = process.env.ONESIGNAL_REST_API_KEY || '';
 
-// In-memory store for pending chats
-const chatStore = new Map<string, { status: 'pending' | 'completed' | 'error', encryptedData?: string, error?: string }>();
+const firebaseConfig = {
+  apiKey: process.env.VITE_FIREBASE_API_KEY || process.env.FIREBASE_API_KEY,
+  authDomain: process.env.VITE_FIREBASE_AUTH_DOMAIN || process.env.FIREBASE_AUTH_DOMAIN,
+  projectId: process.env.VITE_FIREBASE_PROJECT_ID || process.env.FIREBASE_PROJECT_ID,
+  storageBucket: process.env.VITE_FIREBASE_STORAGE_BUCKET || process.env.FIREBASE_STORAGE_BUCKET,
+  messagingSenderId: process.env.VITE_FIREBASE_MESSAGING_SENDER_ID || process.env.FIREBASE_MESSAGING_SENDER_ID,
+  appId: process.env.VITE_FIREBASE_APP_ID || process.env.FIREBASE_APP_ID
+};
+
+const appFirebase = getApps().length === 0 ? initializeApp(firebaseConfig) : getApps()[0];
+const db = getFirestore(appFirebase);
 
 async function startServer() {
   const app = express();
@@ -26,8 +37,16 @@ async function startServer() {
       return res.status(400).json({ error: 'Eksik parametreler' });
     }
 
-    // Set status to pending immediately
-    chatStore.set(chatId, { status: 'pending' });
+    try {
+      await setDoc(doc(db, 'pending_chats', chatId), {
+        status: 'pending',
+        createdAt: new Date().toISOString()
+      });
+    } catch (error) {
+      console.error("Firestore write error:", error);
+      return res.status(500).json({ error: 'Veritabanı hatası' });
+    }
+
     res.status(202).json({ status: 'pending', chatId });
 
     // Process asynchronously
@@ -67,21 +86,41 @@ async function startServer() {
       const combined = Buffer.concat([iv, encrypted, finalBuffer, authTag]);
       const encryptedBase64 = combined.toString('base64');
 
-      chatStore.set(chatId, { status: 'completed', encryptedData: encryptedBase64 });
+      await setDoc(doc(db, 'pending_chats', chatId), {
+        status: 'completed',
+        encryptedData: encryptedBase64,
+        updatedAt: new Date().toISOString()
+      });
     } catch (error: any) {
       console.error("Async chat error:", error);
-      chatStore.set(chatId, { status: 'error', error: error.message });
+      await setDoc(doc(db, 'pending_chats', chatId), {
+        status: 'error',
+        error: error.message,
+        updatedAt: new Date().toISOString()
+      });
     }
   });
 
   // Chat Status Endpoint
-  app.get("/api/chat/status/:chatId", (req, res) => {
-    const { chatId } = req.params;
-    const chat = chatStore.get(chatId);
-    if (!chat) {
-      return res.status(404).json({ error: 'Sohbet bulunamadı' });
+  app.get("/api/chat/status", async (req, res) => {
+    const chatId = req.query.chatId as string;
+    if (!chatId) {
+      return res.status(400).json({ error: 'Eksik parametreler' });
     }
-    res.json(chat);
+
+    try {
+      const docRef = doc(db, 'pending_chats', chatId);
+      const docSnap = await getDoc(docRef);
+
+      if (docSnap.exists()) {
+        return res.status(200).json(docSnap.data());
+      } else {
+        return res.status(404).json({ error: 'Sohbet bulunamadı' });
+      }
+    } catch (error: any) {
+      console.error("Firestore read error:", error);
+      return res.status(500).json({ error: 'Veritabanı hatası' });
+    }
   });
 
   // Subscribe Route (Kept for backward compatibility if needed, but OneSignal handles this)

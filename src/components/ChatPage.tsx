@@ -79,7 +79,7 @@ export const ChatPage: React.FC<ChatPageProps> = ({ onBack, appData, setData }) 
       setIsLoading(true);
       const poll = setInterval(async () => {
         try {
-          const res = await fetch(`/api/chat/status/${pendingChatId}`);
+          const res = await fetch(`/api/chat/status?chatId=${pendingChatId}`);
           if (res.ok) {
             const data = await res.json();
             if (data.status === 'completed') {
@@ -246,7 +246,7 @@ export const ChatPage: React.FC<ChatPageProps> = ({ onBack, appData, setData }) 
       // Start polling
       const poll = setInterval(async () => {
         try {
-          const res = await fetch(`/api/chat/status/${chatId}`);
+          const res = await fetch(`/api/chat/status?chatId=${chatId}`);
           if (res.ok) {
             const data = await res.json();
             if (data.status === 'completed') {
