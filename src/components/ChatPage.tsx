@@ -7,6 +7,7 @@ import { HatimData, UserProfile } from '../types';
 interface Message {
   role: 'user' | 'assistant' | 'system';
   content: string;
+  id?: string;
 }
 
 interface ChatPageProps {
@@ -27,11 +28,12 @@ const OFFLINE_QUEUE_KEY = 'hatim_offline_chat_queue';
 
 export const ChatPage: React.FC<ChatPageProps> = ({ onBack, appData, setData, profile }) => {
   const [messages, setMessages] = useState<Message[]>([
-    { role: 'assistant', content: 'Selamün Aleyküm! Size dini konularda nasıl yardımcı olabilirim? Konuşmalarımız uçtan uca şifrelenmektedir.' }
+    { role: 'assistant', content: 'Selamün Aleyküm! Size dini konularda nasıl yardımcı olabilirim? Konuşmalarımız uçtan uca şifrelenmektedir.', id: 'welcome' }
   ]);
   const [input, setInput] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const [isHistoryLoaded, setIsHistoryLoaded] = useState(false);
+  const [pendingChatId, setPendingChatId] = useState<string | null>(() => localStorage.getItem(PENDING_CHAT_KEY));
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
   // Load chat history
@@ -76,53 +78,58 @@ export const ChatPage: React.FC<ChatPageProps> = ({ onBack, appData, setData, pr
 
   // Poll for pending chat
   useEffect(() => {
-    let pollInterval: NodeJS.Timeout | null = null;
-
-    const startPolling = (chatId: string) => {
-      if (pollInterval) clearInterval(pollInterval);
-      
-      setIsLoading(true);
-      pollInterval = setInterval(async () => {
-        try {
-          const res = await fetch(`/api/chat/status?chatId=${chatId}`);
-          if (res.ok) {
-            const data = await res.json();
-            if (data.status === 'completed') {
-              if (pollInterval) clearInterval(pollInterval);
-              localStorage.removeItem(PENDING_CHAT_KEY);
-              
-              const keyBase64 = getRawKeyBase64();
-              if (keyBase64 && data.encryptedData) {
-                const decrypted = await decryptData(data.encryptedData);
-                setMessages(prev => [...prev, { role: 'assistant', content: decrypted }]);
-              } else {
-                setMessages(prev => [...prev, { role: 'assistant', content: 'Hata: Şifre çözülemedi.' }]);
-              }
-              setIsLoading(false);
-            } else if (data.status === 'error') {
-              if (pollInterval) clearInterval(pollInterval);
-              localStorage.removeItem(PENDING_CHAT_KEY);
-              setMessages(prev => [...prev, { role: 'assistant', content: `Hata: ${data.error}` }]);
-              setIsLoading(false);
-            }
-          } else if (res.status === 404) {
-            if (pollInterval) clearInterval(pollInterval);
+    if (!pendingChatId) return;
+    
+    setIsLoading(true);
+    const pollInterval = setInterval(async () => {
+      try {
+        const res = await fetch(`/api/chat/status?chatId=${pendingChatId}`);
+        if (res.ok) {
+          const data = await res.json();
+          if (data.status === 'completed') {
+            clearInterval(pollInterval);
             localStorage.removeItem(PENDING_CHAT_KEY);
+            
+            const keyBase64 = getRawKeyBase64();
+            if (keyBase64 && data.encryptedData) {
+              const decrypted = await decryptData(data.encryptedData);
+              if (decrypted) {
+                setMessages(prev => {
+                  if (prev.some(m => m.id === pendingChatId)) return prev;
+                  return [...prev, { role: 'assistant', content: decrypted, id: pendingChatId }];
+                });
+              }
+            } else {
+              setMessages(prev => [...prev, { role: 'assistant', content: 'Hata: Şifre çözülemedi.', id: pendingChatId }]);
+            }
+            setPendingChatId(null);
+            setIsLoading(false);
+          } else if (data.status === 'error') {
+            clearInterval(pollInterval);
+            localStorage.removeItem(PENDING_CHAT_KEY);
+            setMessages(prev => [...prev, { role: 'assistant', content: `Hata: ${data.error}`, id: pendingChatId }]);
+            setPendingChatId(null);
             setIsLoading(false);
           }
-        } catch (e) {
-          // Network error, keep polling
+        } else if (res.status === 404) {
+          clearInterval(pollInterval);
+          localStorage.removeItem(PENDING_CHAT_KEY);
+          setPendingChatId(null);
+          setIsLoading(false);
         }
-      }, 3000);
-    };
+      } catch (e) {
+        // Network error, keep polling
+      }
+    }, 3000);
 
-    const pendingChatId = localStorage.getItem(PENDING_CHAT_KEY);
-    if (pendingChatId) {
-      startPolling(pendingChatId);
-    }
+    return () => clearInterval(pollInterval);
+  }, [pendingChatId]);
 
-    // Check for offline queue
+  // Check for offline queue
+  useEffect(() => {
     const checkOfflineQueue = async () => {
+      if (pendingChatId) return;
+
       const queued = localStorage.getItem(OFFLINE_QUEUE_KEY);
       if (queued) {
         try {
@@ -137,27 +144,21 @@ export const ChatPage: React.FC<ChatPageProps> = ({ onBack, appData, setData, pr
             if (response.ok) {
               localStorage.removeItem(OFFLINE_QUEUE_KEY);
               localStorage.setItem(PENDING_CHAT_KEY, qChatId);
-              startPolling(qChatId);
+              setPendingChatId(qChatId);
             }
           }
-        } catch (e) {
-          // Still offline or error
-        }
+        } catch (e) {}
       }
     };
 
-    const offlineCheckInterval = setInterval(checkOfflineQueue, 10000);
+    const interval = setInterval(checkOfflineQueue, 10000);
     checkOfflineQueue();
-
-    return () => {
-      if (pollInterval) clearInterval(pollInterval);
-      clearInterval(offlineCheckInterval);
-    };
-  }, []);
+    return () => clearInterval(interval);
+  }, [pendingChatId]);
 
   const handleClearChat = async () => {
     const defaultMessages: Message[] = [
-      { role: 'assistant', content: 'Selamün Aleyküm! Size dini konularda nasıl yardımcı olabilirim? Konuşmalarımız uçtan uca şifrelenmektedir.' }
+      { role: 'assistant', content: 'Selamün Aleyküm! Size dini konularda nasıl yardımcı olabilirim? Konuşmalarımız uçtan uca şifrelenmektedir.', id: 'welcome' }
     ];
     setMessages(defaultMessages);
     if (setData) {
@@ -230,9 +231,10 @@ export const ChatPage: React.FC<ChatPageProps> = ({ onBack, appData, setData, pr
     }
 
     const userMessage = input.trim();
+    const userMessageId = window.crypto.randomUUID();
     setInput('');
     
-    const newMessages: Message[] = [...messages, { role: 'user', content: userMessage }];
+    const newMessages: Message[] = [...messages, { role: 'user', content: userMessage, id: userMessageId }];
     setMessages(newMessages);
     setIsLoading(true);
 
@@ -282,38 +284,14 @@ export const ChatPage: React.FC<ChatPageProps> = ({ onBack, appData, setData, pr
         }
 
         localStorage.setItem(PENDING_CHAT_KEY, chatId);
-        
-        // Start polling
-        const poll = setInterval(async () => {
-          try {
-            const res = await fetch(`/api/chat/status?chatId=${chatId}`);
-            if (res.ok) {
-              const data = await res.json();
-              if (data.status === 'completed') {
-                clearInterval(poll);
-                localStorage.removeItem(PENDING_CHAT_KEY);
-                
-                const decrypted = await decryptData(data.encryptedData);
-                setMessages(prev => [...prev, { role: 'assistant', content: decrypted }]);
-                setIsLoading(false);
-              } else if (data.status === 'error') {
-                clearInterval(poll);
-                localStorage.removeItem(PENDING_CHAT_KEY);
-                setMessages(prev => [...prev, { role: 'assistant', content: `Hata: ${data.error}` }]);
-                setIsLoading(false);
-              }
-            }
-          } catch (e) {
-            // Network error, keep polling
-          }
-        }, 3000);
+        setPendingChatId(chatId);
       } catch (error: any) {
         // If it's a network error, queue it for later
         if (error.message.includes('Failed to fetch') || error.message.includes('NetworkError')) {
           localStorage.setItem(OFFLINE_QUEUE_KEY, JSON.stringify({ messages: apiMessages, chatId }));
-          setMessages(prev => [...prev, { role: 'assistant', content: 'İnternet bağlantınız zayıf. Mesajınız kuyruğa alındı ve bağlantı düzeldiğinde otomatik olarak gönderilecek.' }]);
+          setMessages(prev => [...prev, { role: 'assistant', content: 'İnternet bağlantınız zayıf. Mesajınız kuyruğa alındı ve bağlantı düzeldiğinde otomatik olarak gönderilecek.', id: `queued-${chatId}` }]);
         } else {
-          setMessages(prev => [...prev, { role: 'assistant', content: `Hata: ${error.message}` }]);
+          setMessages(prev => [...prev, { role: 'assistant', content: `Hata: ${error.message}`, id: `error-${chatId}` }]);
         }
         setIsLoading(false);
       }
@@ -363,7 +341,7 @@ export const ChatPage: React.FC<ChatPageProps> = ({ onBack, appData, setData, pr
           <motion.div
             initial={{ opacity: 0, y: 10 }}
             animate={{ opacity: 1, y: 0 }}
-            key={index}
+            key={msg.id || index}
             className={`flex gap-3 ${msg.role === 'user' ? 'flex-row-reverse' : ''}`}
           >
             <div className={`w-8 h-8 rounded-full flex items-center justify-center shrink-0 ${
