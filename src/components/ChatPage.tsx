@@ -2,7 +2,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import { motion } from 'motion/react';
 import { Send, Bot, User, Loader2, Trash2, ArrowLeft, Shield } from 'lucide-react';
 import { encryptData, decryptData, getRawKeyBase64 } from '../lib/encryption';
-import { HatimData } from '../types';
+import { HatimData, UserProfile } from '../types';
 
 interface Message {
   role: 'user' | 'assistant' | 'system';
@@ -13,6 +13,7 @@ interface ChatPageProps {
   onBack?: () => void;
   appData?: HatimData;
   setData?: React.Dispatch<React.SetStateAction<HatimData>>;
+  profile?: UserProfile | null;
 }
 
 const LIMITS = {
@@ -22,8 +23,9 @@ const LIMITS = {
 };
 
 const PENDING_CHAT_KEY = 'hatim_pending_chat';
+const OFFLINE_QUEUE_KEY = 'hatim_offline_chat_queue';
 
-export const ChatPage: React.FC<ChatPageProps> = ({ onBack, appData, setData }) => {
+export const ChatPage: React.FC<ChatPageProps> = ({ onBack, appData, setData, profile }) => {
   const [messages, setMessages] = useState<Message[]>([
     { role: 'assistant', content: 'Selamün Aleyküm! Size dini konularda nasıl yardımcı olabilirim? Konuşmalarımız uçtan uca şifrelenmektedir.' }
   ]);
@@ -74,22 +76,23 @@ export const ChatPage: React.FC<ChatPageProps> = ({ onBack, appData, setData }) 
 
   // Poll for pending chat
   useEffect(() => {
-    const pendingChatId = localStorage.getItem(PENDING_CHAT_KEY);
-    if (pendingChatId) {
+    let pollInterval: NodeJS.Timeout | null = null;
+
+    const startPolling = (chatId: string) => {
+      if (pollInterval) clearInterval(pollInterval);
+      
       setIsLoading(true);
-      const poll = setInterval(async () => {
+      pollInterval = setInterval(async () => {
         try {
-          const res = await fetch(`/api/chat/status?chatId=${pendingChatId}`);
+          const res = await fetch(`/api/chat/status?chatId=${chatId}`);
           if (res.ok) {
             const data = await res.json();
             if (data.status === 'completed') {
-              clearInterval(poll);
+              if (pollInterval) clearInterval(pollInterval);
               localStorage.removeItem(PENDING_CHAT_KEY);
               
               const keyBase64 = getRawKeyBase64();
               if (keyBase64 && data.encryptedData) {
-                // The server encrypted it with AES-GCM. We can decrypt it using decryptData if we format it correctly.
-                // Wait, the server sends base64 of (iv + encrypted + authTag). This is exactly what decryptData expects!
                 const decrypted = await decryptData(data.encryptedData);
                 setMessages(prev => [...prev, { role: 'assistant', content: decrypted }]);
               } else {
@@ -97,14 +100,13 @@ export const ChatPage: React.FC<ChatPageProps> = ({ onBack, appData, setData }) 
               }
               setIsLoading(false);
             } else if (data.status === 'error') {
-              clearInterval(poll);
+              if (pollInterval) clearInterval(pollInterval);
               localStorage.removeItem(PENDING_CHAT_KEY);
               setMessages(prev => [...prev, { role: 'assistant', content: `Hata: ${data.error}` }]);
               setIsLoading(false);
             }
           } else if (res.status === 404) {
-            // Not found on server, maybe server restarted
-            clearInterval(poll);
+            if (pollInterval) clearInterval(pollInterval);
             localStorage.removeItem(PENDING_CHAT_KEY);
             setIsLoading(false);
           }
@@ -112,8 +114,45 @@ export const ChatPage: React.FC<ChatPageProps> = ({ onBack, appData, setData }) 
           // Network error, keep polling
         }
       }, 3000);
-      return () => clearInterval(poll);
+    };
+
+    const pendingChatId = localStorage.getItem(PENDING_CHAT_KEY);
+    if (pendingChatId) {
+      startPolling(pendingChatId);
     }
+
+    // Check for offline queue
+    const checkOfflineQueue = async () => {
+      const queued = localStorage.getItem(OFFLINE_QUEUE_KEY);
+      if (queued) {
+        try {
+          const { messages: qMessages, chatId: qChatId } = JSON.parse(queued);
+          const encryptionKey = getRawKeyBase64();
+          if (encryptionKey) {
+            const response = await fetch('/api/chat/request', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({ messages: qMessages, encryptionKey, chatId: qChatId })
+            });
+            if (response.ok) {
+              localStorage.removeItem(OFFLINE_QUEUE_KEY);
+              localStorage.setItem(PENDING_CHAT_KEY, qChatId);
+              startPolling(qChatId);
+            }
+          }
+        } catch (e) {
+          // Still offline or error
+        }
+      }
+    };
+
+    const offlineCheckInterval = setInterval(checkOfflineQueue, 10000);
+    checkOfflineQueue();
+
+    return () => {
+      if (pollInterval) clearInterval(pollInterval);
+      clearInterval(offlineCheckInterval);
+    };
   }, []);
 
   const handleClearChat = async () => {
@@ -198,11 +237,10 @@ export const ChatPage: React.FC<ChatPageProps> = ({ onBack, appData, setData }) 
     setIsLoading(true);
 
     const appDataSummary = appData ? {
-      xp: appData.xp,
-      level: appData.level,
-      streak: appData.streak,
       tasks: appData.tasks?.slice(0, 10),
-      recentLogs: appData.logs?.slice(0, 5)
+      xp: profile?.stats?.xp || 0,
+      level: profile?.stats?.level || 1,
+      streak: profile?.stats?.streak || 0
     } : {};
 
     const systemPrompt = `Sen HatimPro uygulamasının akıllı asistanısın. Hem dini konularda (İslami sorular, ayet, hadis) yardımcı olursun, hem de kullanıcının uygulama içi verilerini analiz edip ona rehberlik edersin. Dini olmayan genel sohbetlere nazikçe kapalı olduğunu belirt.
@@ -223,56 +261,65 @@ export const ChatPage: React.FC<ChatPageProps> = ({ onBack, appData, setData }) 
     }
 
     const chatId = window.crypto.randomUUID();
-    localStorage.setItem(PENDING_CHAT_KEY, chatId);
+    
+    const sendRequest = async () => {
+      try {
+        const response = await fetch('/api/chat/request', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json'
+          },
+          body: JSON.stringify({
+            messages: apiMessages,
+            encryptionKey,
+            chatId
+          })
+        });
 
-    try {
-      const response = await fetch('/api/chat/request', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json'
-        },
-        body: JSON.stringify({
-          messages: apiMessages,
-          encryptionKey,
-          chatId
-        })
-      });
-
-      if (!response.ok) {
-        const errText = await response.text();
-        throw new Error(`Sunucu Hatası (${response.status}): ${errText.slice(0, 100)}...`);
-      }
-
-      // Start polling
-      const poll = setInterval(async () => {
-        try {
-          const res = await fetch(`/api/chat/status?chatId=${chatId}`);
-          if (res.ok) {
-            const data = await res.json();
-            if (data.status === 'completed') {
-              clearInterval(poll);
-              localStorage.removeItem(PENDING_CHAT_KEY);
-              
-              const decrypted = await decryptData(data.encryptedData);
-              setMessages(prev => [...prev, { role: 'assistant', content: decrypted }]);
-              setIsLoading(false);
-            } else if (data.status === 'error') {
-              clearInterval(poll);
-              localStorage.removeItem(PENDING_CHAT_KEY);
-              setMessages(prev => [...prev, { role: 'assistant', content: `Hata: ${data.error}` }]);
-              setIsLoading(false);
-            }
-          }
-        } catch (e) {
-          // Network error, keep polling
+        if (!response.ok) {
+          const errText = await response.text();
+          throw new Error(`Sunucu Hatası (${response.status}): ${errText.slice(0, 100)}...`);
         }
-      }, 3000);
 
-    } catch (error: any) {
-      localStorage.removeItem(PENDING_CHAT_KEY);
-      setMessages([...newMessages, { role: 'assistant', content: `Hata: ${error.message}` }]);
-      setIsLoading(false);
-    }
+        localStorage.setItem(PENDING_CHAT_KEY, chatId);
+        
+        // Start polling
+        const poll = setInterval(async () => {
+          try {
+            const res = await fetch(`/api/chat/status?chatId=${chatId}`);
+            if (res.ok) {
+              const data = await res.json();
+              if (data.status === 'completed') {
+                clearInterval(poll);
+                localStorage.removeItem(PENDING_CHAT_KEY);
+                
+                const decrypted = await decryptData(data.encryptedData);
+                setMessages(prev => [...prev, { role: 'assistant', content: decrypted }]);
+                setIsLoading(false);
+              } else if (data.status === 'error') {
+                clearInterval(poll);
+                localStorage.removeItem(PENDING_CHAT_KEY);
+                setMessages(prev => [...prev, { role: 'assistant', content: `Hata: ${data.error}` }]);
+                setIsLoading(false);
+              }
+            }
+          } catch (e) {
+            // Network error, keep polling
+          }
+        }, 3000);
+      } catch (error: any) {
+        // If it's a network error, queue it for later
+        if (error.message.includes('Failed to fetch') || error.message.includes('NetworkError')) {
+          localStorage.setItem(OFFLINE_QUEUE_KEY, JSON.stringify({ messages: apiMessages, chatId }));
+          setMessages(prev => [...prev, { role: 'assistant', content: 'İnternet bağlantınız zayıf. Mesajınız kuyruğa alındı ve bağlantı düzeldiğinde otomatik olarak gönderilecek.' }]);
+        } else {
+          setMessages(prev => [...prev, { role: 'assistant', content: `Hata: ${error.message}` }]);
+        }
+        setIsLoading(false);
+      }
+    };
+
+    sendRequest();
   };
 
   return (
@@ -294,7 +341,7 @@ export const ChatPage: React.FC<ChatPageProps> = ({ onBack, appData, setData }) 
           <div>
             <h2 className="text-white font-bold flex items-center gap-2">
               Dini Asistan
-              <Shield size={14} className="text-emerald-500" title="Uçtan Uca Şifreli" />
+              <Shield size={14} className="text-emerald-500" />
             </h2>
             <p className="text-xs text-emerald-500">Çevrimiçi</p>
           </div>

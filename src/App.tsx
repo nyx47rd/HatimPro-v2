@@ -75,6 +75,12 @@ const JUZ_START_PAGES = [
   402, 422, 442, 462, 482, 502, 522, 542, 562, 582, 605
 ];
 
+const AI_LIMITS = {
+  minute: 5,
+  hour: 20,
+  day: 100
+};
+
 const SOUNDS = {
   click: 'https://assets.mixkit.co/active_storage/sfx/2568/2568-preview.mp3',
   success: 'https://assets.mixkit.co/active_storage/sfx/2013/2013-preview.mp3',
@@ -2271,6 +2277,75 @@ function AppContent() {
           </div>
         </section>
 
+        <section className="bg-white dark:bg-neutral-900 rounded-3xl p-6 border border-sage-100 dark:border-neutral-800 shadow-sm">
+          <h3 className="text-sm font-bold text-sage-500 dark:text-white uppercase tracking-widest mb-4">Yapay Zeka Kullanımı</h3>
+          
+          <div className="space-y-6">
+            <div className="flex items-center gap-3">
+              <div className="bg-sage-50 dark:bg-neutral-800 p-2 rounded-lg text-sage-600 dark:text-white">
+                <Bot size={20} />
+              </div>
+              <div>
+                <p className="font-bold text-sage-800 dark:text-white">Asistan Kullanım Bilgileri</p>
+                <p className="text-xs text-sage-600 dark:text-neutral-300">Günlük ve saatlik kullanım limitleriniz</p>
+              </div>
+            </div>
+
+            <div className="space-y-4">
+              {/* Minute Limit */}
+              <div className="space-y-2">
+                <div className="flex justify-between text-xs font-bold">
+                  <span className="text-sage-600 dark:text-neutral-400">Dakikalık Limit</span>
+                  <span className="text-sage-800 dark:text-white">
+                    {data.aiUsage?.minute.timestamp === Math.floor(Date.now() / 60000) ? data.aiUsage.minute.count : 0} / {AI_LIMITS.minute}
+                  </span>
+                </div>
+                <div className="h-2 bg-sage-100 dark:bg-neutral-800 rounded-full overflow-hidden">
+                  <motion.div 
+                    initial={{ width: 0 }}
+                    animate={{ width: `${Math.min(100, ((data.aiUsage?.minute.timestamp === Math.floor(Date.now() / 60000) ? data.aiUsage.minute.count : 0) / AI_LIMITS.minute) * 100)}%` }}
+                    className="h-full bg-sage-500"
+                  />
+                </div>
+              </div>
+
+              {/* Hour Limit */}
+              <div className="space-y-2">
+                <div className="flex justify-between text-xs font-bold">
+                  <span className="text-sage-600 dark:text-neutral-400">Saatlik Limit</span>
+                  <span className="text-sage-800 dark:text-white">
+                    {data.aiUsage?.hour.timestamp === Math.floor(Date.now() / 3600000) ? data.aiUsage.hour.count : 0} / {AI_LIMITS.hour}
+                  </span>
+                </div>
+                <div className="h-2 bg-sage-100 dark:bg-neutral-800 rounded-full overflow-hidden">
+                  <motion.div 
+                    initial={{ width: 0 }}
+                    animate={{ width: `${Math.min(100, ((data.aiUsage?.hour.timestamp === Math.floor(Date.now() / 3600000) ? data.aiUsage.hour.count : 0) / AI_LIMITS.hour) * 100)}%` }}
+                    className="h-full bg-blue-500"
+                  />
+                </div>
+              </div>
+
+              {/* Day Limit */}
+              <div className="space-y-2">
+                <div className="flex justify-between text-xs font-bold">
+                  <span className="text-sage-600 dark:text-neutral-400">Günlük Limit</span>
+                  <span className="text-sage-800 dark:text-white">
+                    {data.aiUsage?.day.timestamp === Math.floor(Date.now() / 86400000) ? data.aiUsage.day.count : 0} / {AI_LIMITS.day}
+                  </span>
+                </div>
+                <div className="h-2 bg-sage-100 dark:bg-neutral-800 rounded-full overflow-hidden">
+                  <motion.div 
+                    initial={{ width: 0 }}
+                    animate={{ width: `${Math.min(100, ((data.aiUsage?.day.timestamp === Math.floor(Date.now() / 86400000) ? data.aiUsage.day.count : 0) / AI_LIMITS.day) * 100)}%` }}
+                    className="h-full bg-emerald-500"
+                  />
+                </div>
+              </div>
+            </div>
+          </div>
+        </section>
+
         {/* GitHub Version Control Section */}
         <section className="bg-white dark:bg-neutral-900 rounded-3xl p-6 border border-sage-100 dark:border-neutral-800 shadow-sm">
           <h3 className="text-sm font-bold text-sage-500 dark:text-neutral-400 uppercase tracking-widest mb-4">Sürüm Kontrolü</h3>
@@ -2739,6 +2814,7 @@ function AppContent() {
                           }}
                           appData={data}
                           setData={setData}
+                          profile={profile}
                         />
                       </Suspense>
                     </div>
